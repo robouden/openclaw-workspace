@@ -1,0 +1,17 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets / credentials
+*.env
+.env*
+secrets/
+credentials/
+
+# Node
+node_modules/
+
+# Temp files
+*.tmp
+*.log
+*.swp
