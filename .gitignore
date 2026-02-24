@@ -1,6 +1,3 @@
-# Session transcripts (contain full chat history)
-*.jsonl
-
 # Local notes / secrets
 *.secret
 .env
