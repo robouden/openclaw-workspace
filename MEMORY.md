@@ -18,5 +18,14 @@
 - Everything lives here: config, memory, daily logs
 - Commit after every session
 
+## VPS (simplemap.safecast.org)
+- IP: 65.108.24.131, Ubuntu 24.04, Hetzner
+- Production Safecast server — don't touch existing services
+- OpenClaw installed, gateway running as system service
+- SSH tunnel to access: `ssh -L 18790:localhost:18789 root@65.108.24.131 -N`
+- AnyType already running there
+
 ## Pending / TODO
+- [ ] Telegram bot setup (Rob has tablet with Telegram)
 - [ ] Gmail API setup (Google Cloud project + OAuth credentials)
+- [ ] AnyType API integration
