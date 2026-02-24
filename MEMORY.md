@@ -1,0 +1,1 @@
+/home/rob/.openclaw/storage/MEMORY.md
