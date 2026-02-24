@@ -14,10 +14,9 @@
 - Technically deep: Linux, AI, web, embedded, full-stack
 
 ## GitHub Setup
-- Workspace repo: https://github.com/robouden/openclaw-workspace
-- Storage repo: https://github.com/robouden/openclaw-storage
-- Memory symlinked: workspace/MEMORY.md → storage/MEMORY.md, workspace/memory/ → storage/memory/
-- Commit after every session: workspace + storage
+- Single repo: https://github.com/robouden/openclaw-workspace
+- Everything lives here: config, memory, daily logs
+- Commit after every session
 
 ## Pending / TODO
 - [ ] Gmail API setup (Google Cloud project + OAuth credentials)
