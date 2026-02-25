@@ -27,7 +27,23 @@
 - Tailscale Serve: OpenClaw at `https://simplemap.taila8498c.ts.net` (tailnet only)
 - Rob's tablet `p08-t` on tailnet at `100.70.8.86` — can reach OpenClaw directly!
 
+## Tablet Webchat (p08-t)
+- Accessible at `https://simplemap.taila8498c.ts.net` via Tailscale
+- Config changes made to `~/.openclaw/openclaw.json`:
+  - `gateway.auth.allowTailscale: true`
+  - `gateway.controlUi.allowedOrigins: ["https://simplemap.taila8498c.ts.net"]`
+- Device pairing: one-time approval via `openclaw devices approve <requestId>`
+- Already approved — tablet paired ✅
+
+## Local OpenClaw (Rob's laptop/desktop)
+- Path: `/home/rob/.openclaw/`
+- Ran out of Anthropic credits → switched to Qwen free tier (2025-02-25)
+- Fix applied: `openclaw plugins enable qwen-portal-auth` → restart gateway → `openclaw models auth login --provider qwen-portal --set-default` → `openclaw models set qwen-portal/coder-model`
+- Qwen free tier: 2000 req/day via OAuth, no API key needed
+- To switch back to Claude when credits are restored: `openclaw models set anthropic/claude-sonnet-4-6`
+
 ## Pending / TODO
 - [ ] Telegram bot setup (Rob has tablet with Telegram)
 - [ ] Gmail API setup (Google Cloud project + OAuth credentials)
 - [ ] AnyType API integration
+- [ ] Reload Anthropic credits on local machine (currently using Qwen free tier)
