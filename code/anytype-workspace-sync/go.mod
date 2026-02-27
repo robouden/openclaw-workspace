@@ -3,10 +3,8 @@ module github.com/robouden/anytype-workspace-sync
 go 1.24.6
 
 require (
-	github.com/anyproto/anytype-heart v0.48.1
 	github.com/fsnotify/fsnotify v1.7.0
 	google.golang.org/grpc v1.75.0
-	google.golang.org/protobuf v1.36.11
 )
 
 require (
