@@ -14,7 +14,7 @@ import (
 const (
 	workspaceDir = "/root/anytype-workspace"
 	spaceID      = "bafyreietc6lmsanpkyfz4m3x2xd4hb5vvxex7ywalouqcugufarmhy3nue.10piockh34xft"
-	grpcAddr     = "127.0.0.1:31011"
+	grpcAddr     = "127.0.0.1:31009" // Actual AnyType gRPC port (not 31011)
 )
 
 var (
