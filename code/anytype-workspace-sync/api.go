@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/anyproto/anytype-heart/pb"
-	"github.com/anyproto/anytype-heart/pb/service"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -29,7 +28,7 @@ func (c *AnyTypeClient) SyncMarkdownToAnyType(ctx context.Context, change *FileC
 	fmt.Printf("[%s] gRPC: Created object ID: %s\n", time.Now().Format(time.RFC3339), objectID)
 
 	// Step 2: Set object details (title and content)
-	if err := c.setObjectDetails(ctx, objectID, change.Title, change.Content, spaceID); err != nil {
+	if err := c.setObjectDetails(ctx, objectID, change.Title, change.Content); err != nil {
 		return fmt.Errorf("failed to set object details: %w", err)
 	}
 
@@ -41,21 +40,22 @@ func (c *AnyTypeClient) SyncMarkdownToAnyType(ctx context.Context, change *FileC
 func (c *AnyTypeClient) createObject(ctx context.Context, title string, spaceID string) (string, error) {
 	fmt.Printf("[%s]   → Creating object: type=page, title='%s'\n", time.Now().Format(time.RFC3339), title)
 
-	// Create gRPC client stub
-	client := service.NewClientCommandsClient(c.conn)
+	// Build details struct
+	details, err := structpb.NewStruct(map[string]interface{}{
+		"name": title,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to create details struct: %w", err)
+	}
 
-	// Create request with space ID and object type
+	// Create request with space ID
 	req := &pb.RpcObjectCreateRequest{
 		SpaceId: spaceID,
-		Details: &structpb.Struct{
-			Fields: map[string]*structpb.Value{
-				"name": structpb.NewStringValue(title),
-			},
-		},
+		Details: details,
 	}
 
 	// Call ObjectCreate RPC
-	resp, err := client.ObjectCreate(ctx, req)
+	resp, err := pb.NewClientCommandsClient(c.conn).ObjectCreate(ctx, req)
 	if err != nil {
 		return "", c.handleGRPCError(err)
 	}
@@ -71,17 +71,14 @@ func (c *AnyTypeClient) createObject(ctx context.Context, title string, spaceID 
 }
 
 // setObjectDetails invokes ObjectSetDetails RPC to update object properties
-func (c *AnyTypeClient) setObjectDetails(ctx context.Context, objectID string, title string, content string, spaceID string) error {
+func (c *AnyTypeClient) setObjectDetails(ctx context.Context, objectID string, title string, content string) error {
 	fmt.Printf("[%s]   → Setting details on object: title='%s', content_len=%d bytes\n",
 		time.Now().Format(time.RFC3339), title, len(content))
-
-	// Create gRPC client stub
-	client := service.NewClientCommandsClient(c.conn)
 
 	// Create request with object details
 	req := &pb.RpcObjectSetDetailsRequest{
 		ContextId: objectID,
-		Details: []*pb.RpcObjectSetDetailsDetail{
+		Details: []*pb.Detail{
 			{
 				Key:   "name",
 				Value: structpb.NewStringValue(title),
@@ -94,7 +91,7 @@ func (c *AnyTypeClient) setObjectDetails(ctx context.Context, objectID string, t
 	}
 
 	// Call ObjectSetDetails RPC
-	resp, err := client.ObjectSetDetails(ctx, req)
+	resp, err := pb.NewClientCommandsClient(c.conn).ObjectSetDetails(ctx, req)
 	if err != nil {
 		return c.handleGRPCError(err)
 	}
@@ -106,15 +103,6 @@ func (c *AnyTypeClient) setObjectDetails(ctx context.Context, objectID string, t
 
 	fmt.Printf("[%s]   → Details updated successfully\n", time.Now().Format(time.RFC3339))
 	return nil
-}
-
-// hashString generates a simple hash for deterministic IDs
-func hashString(s string) uint32 {
-	h := uint32(0)
-	for _, b := range s {
-		h = h*31 + uint32(b)
-	}
-	return h
 }
 
 // handleGRPCError provides detailed error messages for gRPC failures
