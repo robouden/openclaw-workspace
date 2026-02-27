@@ -47,16 +47,19 @@
 - Qwen free tier: 2000 req/day via OAuth, no API key needed
 - To switch back to Claude when credits are restored: `openclaw models set anthropic/claude-sonnet-4-6`
 
+## AnyType Workspace Migration (2026-02-27)
+- ✅ Created `/root/anytype-workspace/` folder as source of truth (replacing GitHub)
+- ✅ Copied key docs: COST_TRACKING.md, MEMORY.md, SOUL.md, USER.md, IDENTITY.md, TOOLS.md
+- ✅ Built file watcher service (anytype-workspace-sync.service) running Node.js
+- **Status**: Service is running and watching for changes, but REST API sync not yet functional (504)
+- **Next step**: Fix REST API endpoint or use direct SQLite write
+
 ## Pending / TODO
 - [ ] Telegram bot setup (Rob has tablet with Telegram)
 - [ ] Gmail API setup (Google Cloud project + OAuth credentials)
 - [x] AnyType CLI installed (v0.1.9), bot account created, running as anytype-cli.service
   - Bot Account ID: AB4nnRmgS8ocfTdV5UNFX8st5dZZoWnXp7gowBpbpVjS7CPK
-  - API key stored in /root/.anytype/config.json (not in workspace — no secrets in GitHub!)
-  - Shared space ID (claw-bot, 3 members): bafyreietc6lmsanpkyfz4m3x2xd4hb5vvxex7ywalouqcugufarmhy3nue.10piockh34xft
-  - REST API at http://127.0.0.1:31012 (appears to be read-only or requires different auth)
-  - ✅ Rob can see pages in AnyType — client sync working!
-  - Pages created: Claw Identity, Rob Oudendijk, VPS Setup, TODOs
-  - **Issue (2026-02-27)**: REST API not accepting POST for page creation (404). Naming service has no configured peers (warning, non-blocking). Manual pushes via AnyType app work fine.
-  - Goal: Use AnyType app to manually add new docs, or find correct REST API endpoint/auth
+  - Shared space ID (claw-bot): bafyreietc6lmsanpkyfz4m3x2xd4hb5vvxex7ywalouqcugufarmhy3nue.10piockh34xft
+  - ✅ Workspace at `/root/anytype-workspace/` with auto-sync watcher (Node.js service)
+  - **TODO**: Fix REST API POST endpoint so files auto-sync to AnyType database
 - [ ] Reload Anthropic credits on local machine (using Qwen free tier for now — confirmed 2026-02-26)
