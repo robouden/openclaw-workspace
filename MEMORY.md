@@ -54,8 +54,27 @@
   - ✅ Slack channel access remains open (`allowFrom: "*"`) — as intended
   - ✅ CRITICAL issues: 0 (was 1)
 
+## API Key Strategy
+**Problem:** VPS bot shares Claude Haiku key with local OpenClaw + assistant.safecast.org → rate limit contention
+**Solution:** Separate Anthropic API key for VPS bot (2026-02-28)
+
+### Implementation ✅
+- **New key:** Created separate Anthropic API key for VPS bot
+- **Location:** `/root/.openclaw/auth-profiles.json` under profile `anthropic:vps`
+- **Status:** Ready to use (config valid, gateway responsive)
+
+### Auth Profiles on VPS
+- `anthropic:default` → Original shared key (sk-ant-oat01-...)
+- `anthropic:vps` → NEW dedicated key (sk-ant-api03-qYNAf7xWQ...) 
+- `qwen-portal:default` → Qwen free tier
+
+**Note:** Currently, OpenClaw will use `anthropic:default` unless configured otherwise. To use `anthropic:vps` by default on the VPS bot:
+- Option A: Set `OPENCLAW_AUTH_PROFILE=anthropic:vps` env var
+- Option B: Rename or remove `anthropic:default` if VPS should be isolated
+- Option C: Create a separate agent/runtime config that specifies the profile
+
 ## Pending / TODO
+- [ ] **READY:** Configure VPS bot to use `anthropic:vps` profile (set env var or rename default)
 - [ ] Telegram bot setup (Rob has tablet with Telegram)
 - [ ] Gmail API setup (Google Cloud project + OAuth credentials)
 - [ ] AnyType API integration
-- [ ] Reload Anthropic credits on local machine (currently using Qwen free tier)
