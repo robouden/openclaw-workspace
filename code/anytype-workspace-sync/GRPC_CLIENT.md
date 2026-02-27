@@ -34,21 +34,30 @@ Updated to use the gRPC client:
 4. When file changes, attempts to sync via gRPC (or queues if not connected)
 5. On successful connection, will sync queued files
 
-## Next Steps: Implement Actual gRPC Calls
+## API Discovery ✅ Complete
 
-To complete the implementation, we need to:
+**Found:** AnyType proto files in anytype-heart repo  
+**Location:** `pb/protos/service/service.proto`, `commands.proto`, `events.proto`  
+**Copied to:** `code/anytype-workspace-sync/proto/`
 
-### 1. Discover the AnyType gRPC API
+**Key RPC Methods for Sync:**
+- `rpc ObjectCreate` - Create a new object/page in a space
+- `rpc ObjectSetDetails` - Set properties (title, content, etc.)
+- `rpc WorkspaceObjectAdd` - Add object to workspace
 
-**Blocked by:**
-- gRPC reflection not enabled on AnyType server (timeout)
-- No public proto files available in anytype-heart repo
+## Next Steps: Generate Proto Code
 
-**Options:**
-a) **Check AnyType documentation** for gRPC API details
-b) **Use anytype-heart as a library** - Add as Go module dependency
-c) **Reverse-engineer from TypeScript client** - Look at anytype-ts code
-d) **Contact AnyType** - Request API documentation or proto files
+To complete the implementation:
+
+### 1. Generate Go Code from Proto Files ✅
+
+Install protoc and compile:
+```bash
+# Already copied proto files to: code/anytype-workspace-sync/proto/
+# Commands defined in proto files:
+# - ObjectCreate(Request) -> Response
+# - ObjectSetDetails(Request) -> Response
+```
 
 ### 2. Add Proto Definitions
 
