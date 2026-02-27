@@ -2,9 +2,11 @@
 
 ## Status
 
-**File Watcher:** ✅ Complete and running  
+**File Watcher:** ✅ Complete and running (detects changes instantly)
 **gRPC Connection:** ✅ Implemented with graceful fallback  
-**API Implementation:** 🚧 Pending (API discovery needed)
+**API Layer:** ✅ Implemented (api.go with ObjectCreate/ObjectSetDetails stubs)
+**Proto Code Generation:** 🚧 In Progress (anytype-heart module v0.48.1 added)
+**RPC Calls:** 🚧 Pending (waiting for proto compilation)
 
 ## Architecture
 
