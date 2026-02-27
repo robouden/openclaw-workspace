@@ -73,8 +73,29 @@
 - Option B: Rename or remove `anthropic:default` if VPS should be isolated
 - Option C: Create a separate agent/runtime config that specifies the profile
 
+## Rate Limiting Investigation (2026-02-28)
+
+### Two Services on VPS Using Anthropic API
+1. **OpenClaw VPS Bot** (port 18789)
+   - Key: sk-ant-api03-qYNAf7xWQ-... (newly configured `anthropic:vps`)
+   - Rate limit errors: ✅ Found (Feb 27, 23:11-23:43 in journals)
+
+2. **safecast-web-chat** (port 3334)
+   - Key: sk-ant-api03-YL2ST48_... (from `/root/safecast-web-chat-server/.env`)
+   - Rate limit errors: None visible (running normally)
+   - Status: Active, forwarded through safecast-chat-proxy (3335)
+
+### Root Cause
+- Both services use DIFFERENT API keys
+- Both belong to SAME Anthropic account → account-level rate limits
+- Keys are separate but quota is shared
+
+### Plan: Switch to Qwen to Reduce Anthropic Load
+- Configure OpenClaw to use Qwen as fallback or primary
+- `qwen-portal/coder-model` already available (free tier)
+
 ## Pending / TODO
-- [ ] **READY:** Configure VPS bot to use `anthropic:vps` profile (set env var or rename default)
+- [ ] **IN PROGRESS:** Configure request queuing/rate limiting on VPS
 - [ ] Telegram bot setup (Rob has tablet with Telegram)
 - [ ] Gmail API setup (Google Cloud project + OAuth credentials)
 - [ ] AnyType API integration
