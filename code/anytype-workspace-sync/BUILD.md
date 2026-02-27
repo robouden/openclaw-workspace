@@ -8,6 +8,9 @@ cd /root/.openclaw/workspace/code/anytype-workspace-sync
 # Pull latest changes
 git pull origin main
 
+# Fix dependencies first (if build fails with missing go.sum entries)
+./fix-deps.sh
+
 # Build and install
 make install
 
@@ -100,17 +103,32 @@ go mod tidy
 make clean build
 ```
 
-### Proto Import Errors
+### Proto Import Errors / Missing go.sum Entries
 
-If you see errors about missing proto packages:
-
-```bash
-# The anytype-heart dependency should provide all proto files
-go get github.com/anyproto/anytype-heart@v0.48.1
-
-# Verify it's in go.mod
-cat go.mod | grep anytype-heart
+If you see errors like:
 ```
+api.go:8:2: missing go.sum entry for module providing package github.com/anyproto/anytype-heart/pb
+```
+
+**Quick Fix:**
+```bash
+# Use the fix script
+./fix-deps.sh
+```
+
+**Manual Fix:**
+```bash
+# Clean and regenerate dependencies
+go clean -modcache
+rm -f go.sum
+go mod download
+go mod tidy
+
+# Verify anytype-heart is present
+go list -m all | grep anytype-heart
+```
+
+This regenerates `go.sum` with the correct checksums for all subpackages.
 
 ## Dependencies
 
