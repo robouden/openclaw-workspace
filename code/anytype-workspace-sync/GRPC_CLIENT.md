@@ -3,10 +3,10 @@
 ## Status
 
 **File Watcher:** ✅ Complete and running (detects changes instantly)
-**gRPC Connection:** ✅ Implemented with graceful fallback  
-**API Layer:** ✅ Implemented (api.go with ObjectCreate/ObjectSetDetails stubs)
-**Proto Code Generation:** 🚧 In Progress (anytype-heart module v0.48.1 added)
-**RPC Calls:** 🚧 Pending (waiting for proto compilation)
+**gRPC Connection:** ✅ Fixed - connecting to correct port (31009, not 31011)
+**API Layer:** ✅ Implemented (api.go with ObjectCreate/ObjectSetDetails)
+**Proto Code Generation:** ✅ Complete (using anytype-heart module v0.48.1)
+**RPC Calls:** ✅ Implemented (ready for testing)
 
 ## Architecture
 

@@ -78,8 +78,8 @@ echo "# Test Page" > /root/anytype-workspace/TEST-$(date +%s).md
 # Check if AnyType is running
 ps aux | grep anytype
 
-# Check port 31011 is listening
-ss -tlnp | grep 31011
+# Check port 31009 is listening (actual AnyType gRPC port)
+ss -tlnp | grep 31009
 
 # Check space ID is correct
 cat /root/.openclaw/workspace/code/anytype-workspace-sync/main.go | grep spaceID

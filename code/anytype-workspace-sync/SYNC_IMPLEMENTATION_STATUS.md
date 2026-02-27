@@ -1,7 +1,18 @@
 # AnyType Workspace Sync Implementation Status
 
-**Date:** 2026-02-28 01:25 UTC
-**Status:** ✅ **100% Complete** — Ready for deployment and testing
+**Date:** 2026-02-28 02:03 UTC
+**Status:** ✅ **Port Issue Fixed** — Ready for testing
+
+## Latest Update (2026-02-28 02:03)
+
+**Issue Found:** gRPC connection was failing because code was connecting to port 31011, but AnyType's actual gRPC service runs on port **31009**.
+
+**Fix Applied:** Updated `grpcAddr` constant in [main.go:17](main.go#L17) from `127.0.0.1:31011` to `127.0.0.1:31009`.
+
+**Port Discovery:**
+- Port 31009: ✅ AnyType gRPC service (HTTP/2, actual service)
+- Port 31011: ❌ Not listening (previous assumption was wrong)
+- Ports 39415, 42635, 47800: Other AnyType helper services
 
 ## Completed ✅
 
@@ -18,7 +29,7 @@
 - ✅ Graceful fallback when connection fails
 - ✅ Error handling for gRPC status codes
 - ✅ Health check method stub
-- **Status:** Connects to `127.0.0.1:31011` (timeout after 5s, continues gracefully)
+- **Status:** Connects to `127.0.0.1:31009` (correct AnyType gRPC port, fixed 2026-02-28)
 
 ### 3. AnyType API Layer
 - ✅ `SyncMarkdownToAnyType()` orchestration function
@@ -85,7 +96,7 @@ journalctl -u anytype-workspace-sync.service -f
 
 **File watcher with active gRPC sync:**
 ```
-[2026-02-28T01:30:00Z] Connecting to AnyType at 127.0.0.1:31011...
+[2026-02-28T01:30:00Z] Connecting to AnyType at 127.0.0.1:31009...
 [2026-02-28T01:30:01Z] Connected to AnyType
 [2026-02-28T01:30:01Z] Running initial sync...
 [2026-02-28T01:30:01Z] Watching /root/anytype-workspace for changes...
@@ -110,7 +121,7 @@ journalctl -u anytype-workspace-sync.service -f
 └── [watched by Go binary]
     └── anytype-workspace-sync-bin
         ├── File watcher (fsnotify)
-        ├── gRPC client (127.0.0.1:31011)
+        ├── gRPC client (127.0.0.1:31009)
         └── API layer
             ├── createObject() → ObjectCreate RPC
             └── setObjectDetails() → ObjectSetDetails RPC
