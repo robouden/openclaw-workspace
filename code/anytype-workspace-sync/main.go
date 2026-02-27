@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -57,7 +58,7 @@ func ParseMarkdown(filepath string) (*FileChange, error) {
 }
 
 // SyncFile processes a markdown file for sync
-func SyncFile(filepath string) {
+func SyncFile(ctx context.Context, client *AnyTypeClient, filepath string) {
 	change, err := ParseMarkdown(filepath)
 	if err != nil {
 		fmt.Printf("[%s] ✗ Error parsing %s: %v\n", time.Now().Format(time.RFC3339), filepath, err)
@@ -66,13 +67,22 @@ func SyncFile(filepath string) {
 
 	fmt.Printf("[%s] Syncing %s...\n", time.Now().Format(time.RFC3339), change.Filename)
 
-	// TODO: Implement gRPC sync to AnyType
-	// For now, just log that file is ready
-	fmt.Printf("[%s] ✓ %s ready for gRPC sync\n", time.Now().Format(time.RFC3339), change.Filename)
+	// Sync to AnyType via gRPC (if connected)
+	if client == nil {
+		fmt.Printf("[%s] ⚠ %s queued (gRPC client not connected)\n", time.Now().Format(time.RFC3339), change.Filename)
+		return
+	}
+
+	if err := client.SyncMarkdown(ctx, change, spaceID); err != nil {
+		fmt.Printf("[%s] ✗ Sync error for %s: %v\n", time.Now().Format(time.RFC3339), change.Filename, err)
+		return
+	}
+
+	fmt.Printf("[%s] ✓ %s synced to AnyType\n", time.Now().Format(time.RFC3339), change.Filename)
 }
 
 // WatchDirectory monitors for markdown file changes
-func WatchDirectory(dir string, watcher *fsnotify.Watcher) error {
+func WatchDirectory(ctx context.Context, dir string, client *AnyTypeClient, watcher *fsnotify.Watcher) error {
 	// Add root directory
 	if err := watcher.Add(dir); err != nil {
 		return err
@@ -117,7 +127,7 @@ func WatchDirectory(dir string, watcher *fsnotify.Watcher) error {
 
 			// Check if file still exists
 			if _, err := os.Stat(event.Name); err == nil {
-				SyncFile(event.Name)
+				SyncFile(ctx, client, event.Name)
 			}
 
 		case err, ok := <-watcher.Errors:
@@ -130,7 +140,7 @@ func WatchDirectory(dir string, watcher *fsnotify.Watcher) error {
 }
 
 // InitialSync syncs all existing markdown files
-func InitialSync(dir string) error {
+func InitialSync(ctx context.Context, dir string, client *AnyTypeClient) error {
 	fmt.Printf("[%s] Running initial sync...\n", time.Now().Format(time.RFC3339))
 
 	files, err := os.ReadDir(dir)
@@ -140,7 +150,7 @@ func InitialSync(dir string) error {
 
 	for _, file := range files {
 		if !file.IsDir() && strings.HasSuffix(file.Name(), ".md") {
-			SyncFile(filepath.Join(dir, file.Name()))
+			SyncFile(ctx, client, filepath.Join(dir, file.Name()))
 		}
 	}
 
@@ -149,6 +159,8 @@ func InitialSync(dir string) error {
 }
 
 func main() {
+	ctx := context.Background()
+
 	// Check workspace directory exists
 	if _, err := os.Stat(workspaceDir); os.IsNotExist(err) {
 		fmt.Fprintf(os.Stderr, "Error: %s does not exist\n", workspaceDir)
@@ -163,14 +175,31 @@ func main() {
 	}
 	defer watcher.Close()
 
+	// Connect to AnyType gRPC (optional - continue if connection fails)
+	fmt.Printf("[%s] Connecting to AnyType at %s...\n", time.Now().Format(time.RFC3339), grpcAddr)
+	client, err := NewAnyTypeClient(grpcAddr)
+	if err != nil {
+		fmt.Printf("[%s] WARNING: Failed to connect to AnyType: %v\n", time.Now().Format(time.RFC3339), err)
+		fmt.Printf("[%s] Watcher will run but sync will be disabled until connection succeeds\n", time.Now().Format(time.RFC3339))
+		client = nil
+	} else {
+		defer client.Close()
+		fmt.Printf("[%s] Connected to AnyType\n", time.Now().Format(time.RFC3339))
+
+		// Health check
+		if err := client.HealthCheck(ctx); err != nil {
+			fmt.Printf("[%s] WARNING: Health check failed: %v\n", time.Now().Format(time.RFC3339), err)
+		}
+	}
+
 	// Initial sync
-	if err := InitialSync(workspaceDir); err != nil {
+	if err := InitialSync(ctx, workspaceDir, client); err != nil {
 		fmt.Fprintf(os.Stderr, "Initial sync failed: %v\n", err)
 		os.Exit(1)
 	}
 
 	// Start watching
-	if err := WatchDirectory(workspaceDir, watcher); err != nil {
+	if err := WatchDirectory(ctx, workspaceDir, client, watcher); err != nil {
 		fmt.Fprintf(os.Stderr, "Watch failed: %v\n", err)
 		os.Exit(1)
 	}
