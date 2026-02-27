@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/anyproto/anytype-heart/pb"
+	"github.com/anyproto/anytype-heart/pb/service"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // SyncMarkdownToAnyType creates or updates a page in AnyType from markdown
@@ -36,36 +39,72 @@ func (c *AnyTypeClient) SyncMarkdownToAnyType(ctx context.Context, change *FileC
 
 // createObject invokes ObjectCreate RPC to create a new AnyType object
 func (c *AnyTypeClient) createObject(ctx context.Context, title string, spaceID string) (string, error) {
-	// TODO: Implement gRPC call to ObjectCreate once proto code is available
-	// Service: github.com/anyproto/anytype-heart/pb/service.ClientCommands
-	// RPC: ObjectCreate(Rpc.Object.Create.Request) -> Rpc.Object.Create.Response
-	//
-	// Request structure should include:
-	// - space_id: the workspace/space ID
-	// - object_type_id: type identifier (e.g., "page", "note")
-	// - details: map of property names to values (name, description, etc.)
-
 	fmt.Printf("[%s]   → Creating object: type=page, title='%s'\n", time.Now().Format(time.RFC3339), title)
 
-	// Placeholder: generate a deterministic ID
-	objectID := fmt.Sprintf("obj_%x_%x", hashString(title), hashString(spaceID))
+	// Create gRPC client stub
+	client := service.NewClientCommandsClient(c.conn)
+
+	// Create request with space ID and object type
+	req := &pb.RpcObjectCreateRequest{
+		SpaceId: spaceID,
+		Details: &structpb.Struct{
+			Fields: map[string]*structpb.Value{
+				"name": structpb.NewStringValue(title),
+			},
+		},
+	}
+
+	// Call ObjectCreate RPC
+	resp, err := client.ObjectCreate(ctx, req)
+	if err != nil {
+		return "", c.handleGRPCError(err)
+	}
+
+	// Check response error
+	if resp.Error != nil && resp.Error.Code != pb.RpcObjectCreateResponseError_NULL {
+		return "", fmt.Errorf("ObjectCreate failed: %s (%s)", resp.Error.Description, resp.Error.Code)
+	}
+
+	objectID := resp.ObjectId
+	fmt.Printf("[%s]   → Created object ID: %s\n", time.Now().Format(time.RFC3339), objectID)
 	return objectID, nil
 }
 
 // setObjectDetails invokes ObjectSetDetails RPC to update object properties
 func (c *AnyTypeClient) setObjectDetails(ctx context.Context, objectID string, title string, content string, spaceID string) error {
-	// TODO: Implement gRPC call to ObjectSetDetails once proto code is available
-	// Service: github.com/anyproto/anytype-heart/pb/service.ClientCommands
-	// RPC: ObjectSetDetails(Rpc.Object.SetDetails.Request) -> Rpc.Object.SetDetails.Response
-	//
-	// Request structure should include:
-	// - object_id: the object to update
-	// - space_id: the workspace/space
-	// - details: map of property names to new values
-
 	fmt.Printf("[%s]   → Setting details on object: title='%s', content_len=%d bytes\n",
 		time.Now().Format(time.RFC3339), title, len(content))
 
+	// Create gRPC client stub
+	client := service.NewClientCommandsClient(c.conn)
+
+	// Create request with object details
+	req := &pb.RpcObjectSetDetailsRequest{
+		ContextId: objectID,
+		Details: []*pb.RpcObjectSetDetailsDetail{
+			{
+				Key:   "name",
+				Value: structpb.NewStringValue(title),
+			},
+			{
+				Key:   "description",
+				Value: structpb.NewStringValue(content),
+			},
+		},
+	}
+
+	// Call ObjectSetDetails RPC
+	resp, err := client.ObjectSetDetails(ctx, req)
+	if err != nil {
+		return c.handleGRPCError(err)
+	}
+
+	// Check response error
+	if resp.Error != nil && resp.Error.Code != pb.RpcObjectSetDetailsResponseError_NULL {
+		return fmt.Errorf("ObjectSetDetails failed: %s (%s)", resp.Error.Description, resp.Error.Code)
+	}
+
+	fmt.Printf("[%s]   → Details updated successfully\n", time.Now().Format(time.RFC3339))
 	return nil
 }
 
