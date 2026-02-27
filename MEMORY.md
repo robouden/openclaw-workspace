@@ -54,8 +54,9 @@
   - Bot Account ID: AB4nnRmgS8ocfTdV5UNFX8st5dZZoWnXp7gowBpbpVjS7CPK
   - API key stored in /root/.anytype/config.json (not in workspace — no secrets in GitHub!)
   - Shared space ID (claw-bot, 3 members): bafyreietc6lmsanpkyfz4m3x2xd4hb5vvxex7ywalouqcugufarmhy3nue.10piockh34xft
-  - REST API at http://127.0.0.1:31012, API key in /root/.anytype/config.json
-  - ✅ Rob can see pages in AnyType — full sync working!
+  - REST API at http://127.0.0.1:31012 (appears to be read-only or requires different auth)
+  - ✅ Rob can see pages in AnyType — client sync working!
   - Pages created: Claw Identity, Rob Oudendijk, VPS Setup, TODOs
-  - Goal: migrate remaining memory from GitHub markdown to AnyType
+  - **Issue (2026-02-27)**: REST API not accepting POST for page creation (404). Naming service has no configured peers (warning, non-blocking). Manual pushes via AnyType app work fine.
+  - Goal: Use AnyType app to manually add new docs, or find correct REST API endpoint/auth
 - [ ] Reload Anthropic credits on local machine (using Qwen free tier for now — confirmed 2026-02-26)
