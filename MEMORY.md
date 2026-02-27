@@ -22,7 +22,12 @@
 - IP: 65.108.24.131, Ubuntu 24.04, Hetzner — production Safecast server, be careful
 - OpenClaw installed, gateway running as system service (port 18789, loopback)
 - SSH tunnel: `ssh -L 18790:localhost:18789 root@65.108.24.131 -N` → http://localhost:18790
-- AnyType, Docker, MongoDB, PostgreSQL, Redis, Nginx already running
+- Running services: nginx, postgresql, openclaw-gateway, anytype (any-sync-bundle)
+- MongoDB + Redis ARE in use — required by AnyType sync server (any-sync-bundle uses mongo:27017 + redis:6379 internally)
+- Docker installed but not actively used
+- **Slack**: configured via Socket Mode, bot token in openclaw.json, Rob's DM channel D0AHMTHF201, user ID U025D964S
+- **Slack DM is the primary communication channel** — send all updates, alerts, and proactive messages here
+- VPS monitoring active: heartbeat checks disk/memory/CPU/services + nginx traffic, alerts via Slack DM
 - **Tailscale**: userspace mode (LXC container), IP `100.76.253.38`, hostname `simplemap.taila8498c.ts.net`
 - Tailscale Serve: OpenClaw at `https://simplemap.taila8498c.ts.net` (tailnet only)
 - Rob's tablet `p08-t` on tailnet at `100.70.8.86` — can reach OpenClaw directly!
@@ -45,5 +50,12 @@
 ## Pending / TODO
 - [ ] Telegram bot setup (Rob has tablet with Telegram)
 - [ ] Gmail API setup (Google Cloud project + OAuth credentials)
-- [ ] AnyType API integration
-- [ ] Reload Anthropic credits on local machine (currently using Qwen free tier)
+- [x] AnyType CLI installed (v0.1.9), bot account created, running as anytype-cli.service
+  - Bot Account ID: AB4nnRmgS8ocfTdV5UNFX8st5dZZoWnXp7gowBpbpVjS7CPK
+  - API key stored in /root/.anytype/config.json (not in workspace — no secrets in GitHub!)
+  - Shared space ID (claw-bot, 3 members): bafyreietc6lmsanpkyfz4m3x2xd4hb5vvxex7ywalouqcugufarmhy3nue.10piockh34xft
+  - REST API at http://127.0.0.1:31012, API key in /root/.anytype/config.json
+  - ✅ Rob can see pages in AnyType — full sync working!
+  - Pages created: Claw Identity, Rob Oudendijk, VPS Setup, TODOs
+  - Goal: migrate remaining memory from GitHub markdown to AnyType
+- [ ] Reload Anthropic credits on local machine (using Qwen free tier for now — confirmed 2026-02-26)
