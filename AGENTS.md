@@ -51,6 +51,7 @@ Capture what matters. Decisions, context, things to remember. Skip the secrets u
 - Don't run destructive commands without asking.
 - `trash` > `rm` (recoverable beats gone forever)
 - When in doubt, ask.
+- **NEVER log tokens, API keys, secrets, or passwords to any memory file.** The workspace syncs to GitHub — anything written here is potentially public. If a secret appears in chat, do NOT write it down anywhere in the workspace.
 
 ## External vs Internal
 
