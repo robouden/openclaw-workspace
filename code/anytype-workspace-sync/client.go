@@ -40,7 +40,6 @@ func NewAnyTypeClient(addr string) (*AnyTypeClient, error) {
 }
 
 // SyncMarkdown syncs a markdown file to AnyType
-// TODO: Implement actual gRPC calls once proto definitions are available
 func (c *AnyTypeClient) SyncMarkdown(ctx context.Context, change *FileChange, spaceID string) error {
 	if c.conn == nil {
 		return fmt.Errorf("gRPC client not connected")
@@ -48,18 +47,8 @@ func (c *AnyTypeClient) SyncMarkdown(ctx context.Context, change *FileChange, sp
 
 	fmt.Printf("[%s] gRPC: Syncing %s to space %s\n", time.Now().Format(time.RFC3339), change.Filename, spaceID)
 
-	// TODO: Replace with actual gRPC calls
-	// Steps:
-	// 1. Create or update object in space
-	// 2. Map markdown content to AnyType data model
-	// 3. Handle sync conflicts/versioning
-	//
-	// Example structure (to be confirmed with actual API):
-	// - Call RPC to create/update object
-	// - Pass spaceID, object type, markdown content
-	// - Handle errors and retries
-
-	return nil
+	// Use the API layer to sync markdown to AnyType
+	return c.SyncMarkdownToAnyType(ctx, change, spaceID)
 }
 
 // Close closes the gRPC connection
