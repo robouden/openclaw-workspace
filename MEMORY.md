@@ -250,13 +250,50 @@ npm install -g @openclaw/anytype-sync
 ✅ Security best practices documented
 ✅ Reusable for others (no hardcoded paths)
 
-### Next Steps
+### Test Results (2026-02-28 22:50)
 
-- [ ] Test sync on VPS with real data
-- [ ] Create Slack command for sync (`@openclaw sync`)
-- [ ] Monitor first 24h of syncs
-- [ ] Publish to ClawHub (if sharing publicly)
-- [ ] Document Slack integration pattern in skill
+**What Works:**
+- ✅ Session export to markdown (tested working)
+- ✅ AnyType CLI installed and functional
+- ✅ Bot account created with API key
+- ✅ Reading MEMORY.md and session files works perfectly
+
+**What Doesn't Work:**
+- ❌ HTTP REST API on port 31012 returns 404 (endpoints not found)
+- ❌ Can't create/query pages via HTTP API (may be unimplemented in CLI v0.1.9)
+- ❌ gRPC endpoints exist but require complex implementation
+
+**Current Situation:**
+- Markdown export feature works perfectly
+- But manual import to AnyType defeats the purpose
+- Need automated way to get markdown → AnyType workspace
+
+## MongoDB/SQLite Exploration (2026-02-28 22:59)
+
+**Architecture Found:**
+- **MongoDB:** Stores global coordinator/consensus data (encrypted binary payloads)
+- **SQLite (per-space):** Stores space-specific objects with JSONB/binary data
+- **Location:** `/root/.config/anytype/data/{ACCOUNT_ID}/objectstore/{SPACE_ID}/objects.db`
+
+**Space Objects Database Schema:**
+- Table: `_objects_docs`
+  - id (BLOB): object ID
+  - data (BLOB): object data (protobuf-encoded)
+- 138 objects currently in bot space
+- Additional tables for links, state, views, metadata
+
+**Discovery:**
+- ✅ Real data exists and is queryable
+- ✅ SQLite is local and has synchronization files (.db-wal)
+- ✅ Each space has independent database
+- Data format: Binary protobuf (needs decoding)
+
+**Next: Build Node.js monitor to:**
+1. Query SQLite space databases
+2. Detect changes (via mtime, checksums, or polling)
+3. Decode protobuf objects
+4. Sync to PostgreSQL
+5. Enable OpenClaw to query and take actions
 
 ## Pending / TODO
 - [ ] Test anytype-sync.skill with real session data
