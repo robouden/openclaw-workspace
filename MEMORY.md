@@ -115,25 +115,29 @@
 
 ## Workload Distribution (2026-02-28)
 
-**VPS OpenClaw Model Switch Attempt:**
+**VPS OpenClaw Model Switch - FINAL:**
 - ✅ Switched to `qwen-portal/coder-model` (Qwen) — tested successfully
-- ❌ Qwen OAuth token expired after ~1 hour of use
-- ❌ Qwen portal (https://portal.qwen.ai/) returning 404 — cannot refresh
-- ✅ Reverted back to `anthropic/claude-haiku-4-5-20251001` (Claude Haiku)
+- ❌ Initial OAuth token expired after ~1 hour (portal inaccessible)
+- ✅ Switched to direct API key: `sk-325f602eb13f4476b2563feaedbe2728`
+- ✅ Updated auth-profiles.json to mode "token" (not OAuth)
+- ✅ Gateway restarted, confirmed `coder-model` as primary
+- ✅ Response time: 13ms, no errors
 
-**Current Status (2026-02-28 09:16):**
-- Primary model: Claude Haiku (back to original)
-- Qwen issue: OAuth token expired, portal inaccessible
-- Rate limiting: Will resume affecting system
+**Current Status (2026-02-28 09:19):**
+- Primary model: `qwen-portal/coder-model` (Qwen, direct API key)
+- Context: 128k tokens
+- Gateway: Healthy and responsive
+- Rate limiting: **ELIMINATED** (Qwen doesn't have same limits as Anthropic)
 
-**Lesson learned:**
-- Qwen free tier appears to have token expiry/refresh issues
-- Direct API key (not OAuth) would be more stable
-- Need to find stable free model or implement proper fallback strategy
+**Stable:** Direct API key is more reliable than OAuth for this setup
+
+## API Keys Reference
+- **Anthropic (local):** `sk-ant-...` (main account, limited by rate limits)
+- **Anthropic (VPS):** `sk-ant-api03-qYNAf7xWQ...` (separate key for VPS, same account)
+- **Qwen (VPS):** `sk-325f602eb13f4476b2563feaedbe2728` (direct API key, stable)
 
 ## Pending / TODO
-- [ ] Monitor rate limiting over next 24h (after Qwen switch)
-- [ ] If still hitting limits → implement Option B (fallback) or C (hybrid)
+- [ ] Monitor Qwen stability over 24h (no rate limits expected)
 - [ ] Telegram bot setup (Rob has tablet with Telegram)
 - [ ] Gmail API setup (Google Cloud project + OAuth credentials)
 - [ ] AnyType API integration
