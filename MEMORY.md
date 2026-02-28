@@ -91,11 +91,42 @@
 - Keys are separate but quota is shared
 
 ### Plan: Switch to Qwen to Reduce Anthropic Load
-- Configure OpenClaw to use Qwen as fallback or primary
-- `qwen-portal/coder-model` already available (free tier)
+
+**Three Options:**
+
+**Option A: Make OpenClaw Prefer Qwen (PRIMARY)**
+- Change default model from Claude Haiku → `qwen-portal/coder-model`
+- Pros: Reduces Anthropic load immediately, free tier
+- Cons: Qwen is slower, less capable than Claude
+- **Status:** RECOMMENDED — trying first
+
+**Option B: Use Qwen as Fallback (FALLBACK ON LIMIT)**
+- Keep Claude as primary, fallback to Qwen if rate limit hits
+- Pros: Best performance when possible, graceful degradation
+- Cons: More complex config, requires retry logic
+- Requires: OpenClaw fallback/retry policy support
+
+**Option C: Split Workloads (HYBRID)**
+- Route some request types to Qwen by default (e.g., coding → Qwen, chat → Claude)
+- Pros: Balanced, optimized for task
+- Cons: Most complex, per-request routing logic
+
+**Selected:** Option A (2026-02-28) — switch primary to Qwen
+
+## Workload Distribution (2026-02-28)
+
+**VPS OpenClaw Model Switch:**
+- ✅ Primary changed from Claude Haiku → `qwen-portal/coder-model` (Qwen)
+- ✅ Gateway restarted and confirmed active
+- ✅ Status shows `default coder-model (128k ctx)`
+- **Effect:** Immediate reduction in Anthropic API usage for OpenClaw
+- Claude still available as fallback if needed
+
+**Next:** Monitor for 24h to check if rate limits resolve. If not, apply Option B or C.
 
 ## Pending / TODO
-- [ ] **IN PROGRESS:** Configure request queuing/rate limiting on VPS
+- [ ] Monitor rate limiting over next 24h (after Qwen switch)
+- [ ] If still hitting limits → implement Option B (fallback) or C (hybrid)
 - [ ] Telegram bot setup (Rob has tablet with Telegram)
 - [ ] Gmail API setup (Google Cloud project + OAuth credentials)
 - [ ] AnyType API integration
