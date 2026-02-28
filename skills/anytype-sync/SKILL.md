@@ -1,206 +1,336 @@
 ---
 name: anytype-sync
-description: "Sync OpenClaw session notes and data to AnyType self-hosted or cloud workspaces. Use when: (1) backing up and syncing session conversation history, (2) storing structured notes in a collaborative workspace, (3) querying/retrieving data from AnyType, (4) integrating OpenClaw with AnyType for continuous data synchronization."
+description: "Query and monitor AnyType workspaces from OpenClaw via MongoDB. Use when: (1) listing workspace spaces, (2) querying object counts in spaces, (3) getting workspace summaries, (4) monitoring team activity in AnyType, (5) taking actions based on workspace data."
 ---
 
 # AnyType Sync
 
-Query and monitor AnyType workspaces directly from OpenClaw via MongoDB. Perfect for teams wanting OpenClaw to understand and act on shared workspace data.
+Query AnyType workspaces directly from OpenClaw. Perfect for team collaboration — monitor workspace changes and take automated actions via Slack or other channels.
 
 ## Quick Start
 
 ### 1. Prerequisites
 
-AnyType running on your system with:
-- MongoDB available (usually on `localhost:27017`)
-- Bot account created and logged in
-- At least one space configured
+- AnyType running with MongoDB (localhost:27017)
+- Go binary compiled: `anytype-db` (pre-built in skill)
+- OpenClaw with Slack bot enabled (optional, for notifications)
 
-See `references/setup-guide.md` for complete bot account setup.
-
-### 2. Query AnyType Data
+### 2. Basic Commands
 
 ```bash
 # List all spaces
-node scripts/anytype-db.js spaces
+anytype-db spaces
 
-# Get space summary
-node scripts/anytype-db.js summary bafyrei...
+# Get space summary (object count, recent activity)
+anytype-db summary <space-id>
 
-# Monitor for changes in real-time
-node scripts/anytype-db.js monitor bafyrei... 30
+# Count objects in a space
+anytype-db count <space-id>
+
+# Get recent activity
+anytype-db activity <space-id>
 ```
 
 ### 3. Use in OpenClaw
 
+Add to your OpenClaw config or as a Slack command:
+
 ```javascript
-const { AnytypeDB } = require('./scripts/anytype-db.js');
+// Query workspace
+const { execSync } = require('child_process');
 
-// Connect to MongoDB
-const anytype = new AnytypeDB();
-await anytype.connect();
-
-// Query spaces
-const spaces = await anytype.listSpaces();
-const summary = await anytype.getSpaceSummary(spaceId);
-
-// Watch for changes
-const stream = await anytype.watchSpace(spaceId, (change) => {
-  console.log('Workspace changed!', change);
-});
-
-// Clean up
-await anytype.disconnect();
+const result = execSync('/path/to/anytype-db spaces');
+console.log(result.toString());
 ```
 
 ## How It Works
 
 **Direct MongoDB Access:**
 
-OpenClaw queries AnyType's MongoDB databases directly (no API needed):
+The skill includes a compiled Go binary (`anytype-db`) that queries AnyType's MongoDB directly:
 
-### 1. List & Discover Spaces
-```javascript
-const spaces = await anytype.listSpaces();
-// Get all workspaces available to the bot account
+```
+AnyType Workspace (MongoDB)
+    ↓
+anytype-db (Go CLI tool)
+    ↓
+OpenClaw
+    ↓
+Slack / Actions / Responses
 ```
 
-### 2. Query Workspace Objects
-```javascript
-const payloads = await anytype.getPayloadsBySpace(spaceId);
-// Get all objects/pages in a space
+**No APIs, no intermediaries.** Just direct database queries.
+
+## Available Commands
+
+### List Spaces
+
+```bash
+anytype-db spaces
 ```
 
-### 3. Monitor for Changes
+Shows all workspaces available to the bot account:
+- Space ID (bafyrei...)
+- Identity (account that created it)
+- Shareable status
+
+**Example:**
+```
+23 spaces found:
+
+  ID: bafyreibwatfpuq23i74kdfzev5woe64aduy6u4fuijljmzycoawuanjmmq.35fpfsusofs1o
+  Identity: A6JZwRq6eouJi4F5pumdZug7rG2jNLkGDBpKEwkDPUV96ZtS
+  Shareable: true
+```
+
+### Space Summary
+
+```bash
+anytype-db summary <space-id>
+```
+
+Get workspace overview:
+- Total objects in space
+- Recent activity
+- Last modified timestamp
+
+**Example output:**
+```json
+{
+  "spaceId": "bafyrei...",
+  "totalObjects": 42,
+  "recentActivity": [...],
+  "lastUpdated": "2026-02-28T14:00:00Z"
+}
+```
+
+### Count Objects
+
+```bash
+anytype-db count <space-id>
+```
+
+Get object count for a space (useful for monitoring changes):
+```
+42 payloads in space bafyrei...
+```
+
+### Recent Activity
+
+```bash
+anytype-db activity <space-id>
+```
+
+Show recent changes:
+```
+5 recent activities:
+
+  2026-02-28T14:00:00Z: page_created
+  2026-02-28T13:55:00Z: page_updated
+  ...
+```
+
+## Integration Examples
+
+### Slack Command Handler
+
+Add to your OpenClaw Slack bot:
+
 ```javascript
-const stream = await anytype.watchSpace(spaceId, (change) => {
-  // React to new/updated objects in real-time
+const { execSync } = require('child_process');
+
+async function handleSlackCommand(cmd, args) {
+  const binaryPath = '/path/to/anytype-db';
+  
+  if (cmd === 'spaces') {
+    const result = execSync(`${binaryPath} spaces`);
+    return result.toString();
+  }
+  
+  if (cmd === 'summary') {
+    const spaceId = args[0];
+    const result = execSync(`${binaryPath} summary ${spaceId}`);
+    const summary = JSON.parse(result.toString());
+    return `Space has ${summary.totalObjects} objects`;
+  }
+  
+  return 'Unknown command';
+}
+
+// Usage:
+// @openclaw anytype spaces
+// @openclaw anytype summary bafyrei...
+```
+
+### Monitor Workspace Changes
+
+```javascript
+const { execSync } = require('child_process');
+const cron = require('node-cron');
+
+const binaryPath = '/path/to/anytype-db';
+let previousCount = 0;
+
+// Check every 5 minutes
+cron.schedule('*/5 * * * *', () => {
+  const result = execSync(`${binaryPath} count <space-id>`);
+  const match = result.toString().match(/(\d+) payloads/);
+  const currentCount = parseInt(match[1]);
+  
+  if (currentCount > previousCount) {
+    const added = currentCount - previousCount;
+    console.log(`🎉 ${added} new objects added to workspace!`);
+    // Post to Slack, trigger action, etc.
+  }
+  
+  previousCount = currentCount;
 });
 ```
 
-### 4. Get Activity & Context
-```javascript
-const activity = await anytype.getRecentActivity(spaceId);
-// See what's been happening in the workspace
-```
-
-## API Reference
-
-See `scripts/anytype-db.js` for the MongoDB client.
-
-**Available Methods:**
+### Sync to Slack
 
 ```javascript
-const { AnytypeDB } = require('./scripts/anytype-db.js');
-const anytype = new AnytypeDB();
-await anytype.connect();
+const { execSync } = require('child_process');
+const { WebClient } = require('@slack/web-api');
 
-// Spaces
-const spaces = await anytype.listSpaces();
-const space = await anytype.getSpace(spaceId);
+const slack = new WebClient(process.env.SLACK_TOKEN);
+const binaryPath = '/path/to/anytype-db';
 
-// Objects
-const payloads = await anytype.getPayloadsBySpace(spaceId);
-const count = await anytype.getPayloadCount(spaceId);
-
-// Activity
-const summary = await anytype.getSpaceSummary(spaceId);
-const activity = await anytype.getRecentActivity(spaceId, limit);
-const messages = await anytype.getInboxMessages();
-
-// Watch for changes
-const stream = await anytype.watchSpace(spaceId, callback);
-
-// Cleanup
-await anytype.disconnect();
-```
-
-## Real-World Integration
-
-### Heartbeat Sync
-Add to your `HEARTBEAT.md`:
-
-```markdown
-## AnyType Sync
-
-Run periodically to backup session notes:
-
-```bash
-node ~/.npm-global/lib/node_modules/openclaw/skills/anytype-sync/scripts/sync-notes.js
-```
-```
-
-### Cron Job (Self-Hosted)
-```bash
-# Every 30 minutes, sync to AnyType
-*/30 * * * * node /path/to/sync-notes.js --continuous
-```
-
-### Manual Session Export
-```bash
-node scripts/sync-notes.js \
-  --sessionKey main \
-  --export markdown \
-  --output ~/session-backup.md
+async function postWorkspaceUpdate(spaceId, slackChannel) {
+  const result = execSync(`${binaryPath} summary ${spaceId}`);
+  const summary = JSON.parse(result.toString());
+  
+  await slack.chat.postMessage({
+    channel: slackChannel,
+    text: `📊 Workspace Update: ${summary.totalObjects} objects`,
+    blocks: [
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `*Workspace Activity*\n` +
+                `Objects: ${summary.totalObjects}\n` +
+                `Last updated: ${summary.lastUpdated}`
+        }
+      }
+    ]
+  });
+}
 ```
 
 ## Configuration
 
-All options can be set via:
-1. Command-line flags: `--apiUrl`, `--apiKey`, `--spaceId`
-2. Environment variables: `ANYTYPE_API_URL`, `ANYTYPE_API_KEY`, `ANYTYPE_SPACE_ID`
-3. Config file: Pass `--config /path/to/config.json`
+### MongoDB Connection
 
-Priority order: CLI flags > env vars > config file > defaults
+By default connects to: `mongodb://127.0.0.1:27017`
 
-## Examples
+Override with environment variable:
 
-See `references/examples.md` for:
-- Setting up multi-user sync
-- Backing up to self-hosted AnyType
-- Querying archived sessions
-- Team collaboration workflows
-- Integrating with other tools
+```bash
+export MONGODB_URL=mongodb://user:pass@host:27017
+anytype-db spaces
+```
+
+### Binary Location
+
+The compiled `anytype-db` binary is located at:
+```
+~/.openclaw/workspace/skills/anytype-sync/cmd/anytype-db/main.go
+```
+
+Compiled binary path (after building):
+```
+~/.openclaw/workspace/skills/anytype-sync/anytype-db
+```
+
+## Building from Source
+
+```bash
+cd ~/.openclaw/workspace/skills/anytype-sync
+
+# Requires Go 1.21+
+go mod tidy
+go build -o anytype-db ./cmd/anytype-db
+
+# Test it
+./anytype-db spaces
+```
 
 ## Troubleshooting
 
-**API Connection Issues**
-- Verify AnyType server is running: `anytype serve` or service running
-- Check port is accessible: `curl http://127.0.0.1:31012/health`
-- Ensure API key is valid: `anytype auth apikey list`
+### "Connection refused"
+MongoDB not running. Start AnyType:
+```bash
+anytype serve
+```
 
-**Sync Failures**
-- Check permissions on target space
-- Verify space still exists: `anytype space list`
-- Review logs for specific error messages
+### "23 spaces found" but empty
+AnyType needs a running instance. The bot account must be logged in:
+```bash
+anytype auth status
+```
 
-**Performance**
-- For large sync batches, use `--batch-size 50` (default: 100)
-- Run sync during off-hours for production systems
-- Monitor OpenClaw memory usage on constrained systems
-
-## Security
-
-- **Never commit API keys** to version control
-- **Use environment variables** for production deployments
-- **Rotate API keys** periodically via `anytype auth apikey revoke <key-id>`
-- **Limit space access** by device and user through AnyType permissions
-- **Self-host for privacy** — keep AnyType on your VPS/local network
+### Binary not found
+Compile it first:
+```bash
+cd skills/anytype-sync
+go build -o anytype-db ./cmd/anytype-db
+```
 
 ## Architecture
 
 ```
-OpenClaw Session
-    ↓
-[anytype-api.js] - HTTP client with auth
-    ↓
-[sync-notes.js] - Session export/formatting
-    ↓
-AnyType HTTP API (port 31012)
-    ↓
-AnyType Storage (MongoDB backend)
-    ↓
-Sync to Devices (via AnyType protocol)
+┌─────────────────────────────────────┐
+│  AnyType Desktop/Web UI             │
+│  (Team creates/edits pages)         │
+└────────────┬────────────────────────┘
+             │
+             ↓
+┌─────────────────────────────────────┐
+│  MongoDB (localhost:27017)          │
+│  - Stores spaces, objects, activity │
+└────────────┬────────────────────────┘
+             │
+             ↓
+┌─────────────────────────────────────┐
+│  anytype-db (Go CLI)                │
+│  Direct MongoDB queries             │
+└────────────┬────────────────────────┘
+             │
+             ↓
+┌─────────────────────────────────────┐
+│  OpenClaw                           │
+│  - Query workspaces                 │
+│  - Monitor changes                  │
+│  - Post to Slack                    │
+│  - Take automated actions           │
+└─────────────────────────────────────┘
 ```
 
-Data flows one direction: OpenClaw → AnyType. To pull data from AnyType back into OpenClaw, use the query methods in anytype-api.js.
+## API Reference
+
+See `scripts/anytype-db/main.go` for the source code.
+
+**Available Go functions:**
+
+```go
+db := New("mongodb://127.0.0.1:27017")
+defer db.Disconnect()
+
+spaces, _ := db.ListSpaces()
+space, _ := db.GetSpace(spaceID)
+count, _ := db.CountPayloads(spaceID)
+summary, _ := db.GetSpaceSummary(spaceID)
+activity, _ := db.GetRecentActivity(spaceID, limit)
+```
+
+## Next Steps
+
+- See `references/setup-guide.md` for bot account setup
+- See `references/examples.md` for integration patterns
+- See `cmd/anytype-db/main.go` for source code
+
+## Support
+
+- GitHub: https://github.com/robouden/openclaw-workspace
+- Issues: https://github.com/robouden/openclaw-workspace/issues
