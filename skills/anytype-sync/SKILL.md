@@ -5,118 +5,114 @@ description: "Sync OpenClaw session notes and data to AnyType self-hosted or clo
 
 # AnyType Sync
 
-Automatically sync OpenClaw session notes, conversations, and structured data to AnyType workspaces. Perfect for teams wanting a shared knowledge base that syncs across devices.
+Query and monitor AnyType workspaces directly from OpenClaw via MongoDB. Perfect for teams wanting OpenClaw to understand and act on shared workspace data.
 
 ## Quick Start
 
-### 1. Set Up Your AnyType Bot Account
+### 1. Prerequisites
 
-See `references/setup-guide.md` for complete walkthrough. In brief:
+AnyType running on your system with:
+- MongoDB available (usually on `localhost:27017`)
+- Bot account created and logged in
+- At least one space configured
 
-```bash
-# Create bot account
-anytype auth create my-bot-account
+See `references/setup-guide.md` for complete bot account setup.
 
-# Generate API key
-anytype auth apikey create sync-key
-
-# Note your credentials
-anytype auth status
-```
-
-You'll need:
-- **Account ID** (from status output)
-- **Account Key** (from account creation)
-- **API Key** (from apikey creation)
-- **Space ID** (workspace to sync to)
-- **API URL** (default: http://localhost:31012)
-
-### 2. Configure OpenClaw
-
-Store credentials in your workspace config or environment:
-
-```json
-{
-  "anytype": {
-    "apiUrl": "http://127.0.0.1:31012",
-    "apiKey": "your-api-key-here",
-    "spaceId": "your-space-id",
-    "accountId": "your-account-id"
-  }
-}
-```
-
-### 3. Enable Sync
-
-Use the included scripts to automate syncing:
+### 2. Query AnyType Data
 
 ```bash
-# Run sync script to backup current session
-node scripts/sync-notes.js --sessionKey main --type backup
+# List all spaces
+node scripts/anytype-db.js spaces
 
-# Or set up periodic sync via cron/heartbeat
-# See references/examples.md for full integration patterns
+# Get space summary
+node scripts/anytype-db.js summary bafyrei...
+
+# Monitor for changes in real-time
+node scripts/anytype-db.js monitor bafyrei... 30
+```
+
+### 3. Use in OpenClaw
+
+```javascript
+const { AnytypeDB } = require('./scripts/anytype-db.js');
+
+// Connect to MongoDB
+const anytype = new AnytypeDB();
+await anytype.connect();
+
+// Query spaces
+const spaces = await anytype.listSpaces();
+const summary = await anytype.getSpaceSummary(spaceId);
+
+// Watch for changes
+const stream = await anytype.watchSpace(spaceId, (change) => {
+  console.log('Workspace changed!', change);
+});
+
+// Clean up
+await anytype.disconnect();
 ```
 
 ## How It Works
 
-**Three main capabilities:**
+**Direct MongoDB Access:**
 
-### 1. Backup Session Notes
-Automatically create a new AnyType page for each OpenClaw session with:
-- Session metadata (date, duration, model used)
-- Conversation history
-- Tools used and results
-- Structured tags for search/filtering
+OpenClaw queries AnyType's MongoDB databases directly (no API needed):
 
-### 2. Query AnyType Data
-Retrieve stored information from your AnyType workspace:
-- Search pages by content or tags
-- Get page metadata and structure
-- Use results in OpenClaw workflows
+### 1. List & Discover Spaces
+```javascript
+const spaces = await anytype.listSpaces();
+// Get all workspaces available to the bot account
+```
 
-### 3. Update Pages
-Append notes, add tags, or modify existing pages:
-- Continuous sync of session notes
-- Add context from OpenClaw responses
-- Maintain version history
+### 2. Query Workspace Objects
+```javascript
+const payloads = await anytype.getPayloadsBySpace(spaceId);
+// Get all objects/pages in a space
+```
+
+### 3. Monitor for Changes
+```javascript
+const stream = await anytype.watchSpace(spaceId, (change) => {
+  // React to new/updated objects in real-time
+});
+```
+
+### 4. Get Activity & Context
+```javascript
+const activity = await anytype.getRecentActivity(spaceId);
+// See what's been happening in the workspace
+```
 
 ## API Reference
 
-See `references/api-docs.md` for complete AnyType HTTP API reference.
+See `scripts/anytype-db.js` for the MongoDB client.
 
-The `scripts/anytype-api.js` module handles authentication and provides these methods:
+**Available Methods:**
 
 ```javascript
-const anytype = require('./scripts/anytype-api.js');
+const { AnytypeDB } = require('./scripts/anytype-db.js');
+const anytype = new AnytypeDB();
+await anytype.connect();
 
-// Initialize with your credentials
-const client = anytype.createClient({
-  apiUrl: 'http://127.0.0.1:31012',
-  apiKey: 'your-api-key'
-});
+// Spaces
+const spaces = await anytype.listSpaces();
+const space = await anytype.getSpace(spaceId);
 
-// Create a new page
-await client.createPage({
-  spaceId: 'your-space-id',
-  title: 'Session Notes - 2026-02-28',
-  content: '# OpenClaw Session\n\nSession notes here...',
-  type: 'page'
-});
+// Objects
+const payloads = await anytype.getPayloadsBySpace(spaceId);
+const count = await anytype.getPayloadCount(spaceId);
 
-// Query pages
-const results = await client.queryPages({
-  spaceId: 'your-space-id',
-  query: 'OpenClaw',
-  limit: 10
-});
+// Activity
+const summary = await anytype.getSpaceSummary(spaceId);
+const activity = await anytype.getRecentActivity(spaceId, limit);
+const messages = await anytype.getInboxMessages();
 
-// Update a page
-await client.updatePage({
-  spaceId: 'your-space-id',
-  pageId: 'page-id',
-  content: 'Updated content...'
-});
+// Watch for changes
+const stream = await anytype.watchSpace(spaceId, callback);
+
+// Cleanup
+await anytype.disconnect();
 ```
 
 ## Real-World Integration
