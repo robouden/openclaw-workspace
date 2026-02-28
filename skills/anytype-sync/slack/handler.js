@@ -1,7 +1,8 @@
 /**
  * AnyType Slack Handler
  * 
- * Integrates anytype-sync skill with OpenClaw Slack bot
+ * Pure Node.js MongoDB integration with OpenClaw Slack bot
+ * No external Go binaries required
  * 
  * Commands:
  *   @openclaw anytype spaces
@@ -10,13 +11,35 @@
  *   @openclaw anytype activity <space-id>
  */
 
-const { AnytypeSkill } = require('../scripts/anytype.js');
+const { MongoClient } = require('mongodb');
 
 class AnytypeSlackHandler {
   constructor(slackClient, options = {}) {
     this.slack = slackClient;
-    this.skill = new AnytypeSkill(options);
+    this.mongoUrl = options.mongoUrl || process.env.MONGODB_URL || 'mongodb://127.0.0.1:27017';
     this.logger = options.logger || console;
+    this.mongoClient = null;
+  }
+
+  /**
+   * Initialize MongoDB connection
+   */
+  async connect() {
+    if (this.mongoClient) return; // Already connected
+    
+    try {
+      this.mongoClient = new MongoClient(this.mongoUrl, {
+        serverSelectionTimeoutMS: 5000,
+        connectTimeoutMS: 5000
+      });
+      
+      await this.mongoClient.connect();
+      this.logger.debug('[AnyType] Connected to MongoDB');
+    } catch (error) {
+      this.logger.error('[AnyType] MongoDB connection failed:', error.message);
+      this.mongoClient = null;
+      throw error;
+    }
   }
 
   /**
@@ -24,6 +47,11 @@ class AnytypeSlackHandler {
    */
   async handle(message) {
     try {
+      // Ensure MongoDB is connected
+      if (!this.mongoClient) {
+        await this.connect();
+      }
+
       // Parse command: "anytype spaces" or "anytype summary bafyrei..."
       const parts = message.text.split(/\s+/);
       
@@ -38,28 +66,28 @@ class AnytypeSlackHandler {
 
       switch (command) {
         case 'spaces':
-          result = this.skill.listSpaces();
+          result = await this.listSpaces();
           return await this.postSpaces(message, result);
           
         case 'summary':
           if (!param) {
             return await this.postError(message, 'Space ID required: `@openclaw anytype summary <space-id>`');
           }
-          result = this.skill.getSummary(param);
+          result = await this.getSummary(param);
           return await this.postSummary(message, result);
           
         case 'count':
           if (!param) {
             return await this.postError(message, 'Space ID required: `@openclaw anytype count <space-id>`');
           }
-          result = this.skill.getCount(param);
+          result = await this.getCount(param);
           return await this.postCount(message, result);
           
         case 'activity':
           if (!param) {
             return await this.postError(message, 'Space ID required: `@openclaw anytype activity <space-id>`');
           }
-          result = this.skill.getActivity(param);
+          result = await this.getActivity(param);
           return await this.postActivity(message, result);
           
         case 'help':
@@ -70,8 +98,102 @@ class AnytypeSlackHandler {
       }
 
     } catch (error) {
-      this.logger.error('AnyType Slack handler error:', error);
+      this.logger.error('[AnyType] Handler error:', error);
       return await this.postError(message, `Error: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get all spaces from MongoDB
+   */
+  async listSpaces() {
+    try {
+      const db = this.mongoClient.db('coordinator');
+      const spacesCollection = db.collection('spaces');
+      const spaces = await spacesCollection.find({}).toArray();
+      
+      return {
+        success: true,
+        spaces: spaces.map(s => ({
+          id: s._id,
+          identity: s.identity,
+          shareable: s.isShareable
+        })),
+        count: spaces.length
+      };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get space summary
+   */
+  async getSummary(spaceId) {
+    try {
+      const db = this.mongoClient.db('coordinator');
+      const inboxCollection = db.collection('inboxMessages');
+      
+      const consensusDb = this.mongoClient.db('consensus');
+      const payloadCollection = consensusDb.collection('payload');
+      
+      // Count payloads for this space
+      const regex = new RegExp(`^${spaceId}/`);
+      const count = await payloadCollection.countDocuments({ _id: { $regex: regex } });
+      
+      // Get recent activity
+      const activity = await inboxCollection.find({ spaceId })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .toArray();
+      
+      return {
+        success: true,
+        summary: {
+          spaceId,
+          totalObjects: count,
+          lastUpdated: activity.length > 0 ? activity[0].createdAt : null,
+          recentActivity: activity
+        }
+      };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Count objects in space
+   */
+  async getCount(spaceId) {
+    try {
+      const db = this.mongoClient.db('consensus');
+      const payloadCollection = db.collection('payload');
+      
+      const regex = new RegExp(`^${spaceId}/`);
+      const count = await payloadCollection.countDocuments({ _id: { $regex: regex } });
+      
+      return { success: true, count };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get recent activity
+   */
+  async getActivity(spaceId) {
+    try {
+      const db = this.mongoClient.db('coordinator');
+      const inboxCollection = db.collection('inboxMessages');
+      
+      const activity = await inboxCollection.find({ spaceId })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .toArray();
+      
+      return { success: true, activities: activity };
+    } catch (error) {
+      return { success: false, error: error.message };
     }
   }
 
@@ -79,7 +201,7 @@ class AnytypeSlackHandler {
    * Post spaces list to Slack
    */
   async postSpaces(message, result) {
-    if (result.error) {
+    if (!result.success) {
       return await this.postError(message, result.error);
     }
 
@@ -139,7 +261,7 @@ class AnytypeSlackHandler {
    * Post space summary to Slack
    */
   async postSummary(message, result) {
-    if (result.error) {
+    if (!result.success) {
       return await this.postError(message, result.error);
     }
 
@@ -202,7 +324,7 @@ class AnytypeSlackHandler {
    * Post object count to Slack
    */
   async postCount(message, result) {
-    if (result.error) {
+    if (!result.success) {
       return await this.postError(message, result.error);
     }
 
@@ -227,7 +349,7 @@ class AnytypeSlackHandler {
    * Post recent activity to Slack
    */
   async postActivity(message, result) {
-    if (result.error) {
+    if (!result.success) {
       return await this.postError(message, result.error);
     }
 
@@ -253,7 +375,8 @@ class AnytypeSlackHandler {
     } else {
       let activityText = '';
       result.activities.slice(0, 10).forEach((a, i) => {
-        activityText += `${i + 1}. \`${a.time}\` — ${a.type}\n`;
+        const time = a.createdAt ? new Date(a.createdAt).toLocaleString() : 'Unknown';
+        activityText += `${i + 1}. \`${time}\` — ${a.type || 'unknown'}\n`;
       });
 
       blocks.push({
@@ -362,6 +485,16 @@ class AnytypeSlackHandler {
       thread_ts: message.thread_ts || message.ts,
       blocks
     });
+  }
+
+  /**
+   * Cleanup
+   */
+  async disconnect() {
+    if (this.mongoClient) {
+      await this.mongoClient.close();
+      this.mongoClient = null;
+    }
   }
 }
 
