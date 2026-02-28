@@ -113,23 +113,25 @@
 
 **Selected:** Option A (2026-02-28) — switch primary to Qwen
 
-## Workload Distribution (2026-02-28)
+## Workload Distribution (2026-02-28) - FIXED ✅
 
 **VPS OpenClaw Model Switch - FINAL:**
 - ✅ Switched to `qwen-portal/coder-model` (Qwen) — tested successfully
 - ❌ Initial OAuth token expired after ~1 hour (portal inaccessible)
 - ✅ Switched to direct API key: `sk-325f602eb13f4476b2563feaedbe2728`
-- ✅ Updated auth-profiles.json to mode "token" (not OAuth)
-- ✅ Gateway restarted, confirmed `coder-model` as primary
-- ✅ Response time: 13ms, no errors
+- ⚠️ Bug found: openclaw.json still referenced "qwen-oauth" (old OAuth setting)
+- ✅ Fixed: Updated openclaw.json to use direct API key in `.models.providers.qwen-portal.apiKey`
+- ✅ Gateway restarted with clean config (no cache)
+- ✅ Response time: 19ms
 
-**Current Status (2026-02-28 09:19):**
+**Current Status (2026-02-28 09:45):**
 - Primary model: `qwen-portal/coder-model` (Qwen, direct API key)
+- Config: Updated to use direct token instead of OAuth
+- Gateway: Started fresh with correct settings
 - Context: 128k tokens
-- Gateway: Healthy and responsive
-- Rate limiting: **ELIMINATED** (Qwen doesn't have same limits as Anthropic)
+- Rate limiting: **ELIMINATED**
 
-**Stable:** Direct API key is more reliable than OAuth for this setup
+**Fixed:** Now uses direct API key, not OAuth
 
 ## API Keys Reference
 - **Anthropic (local):** `sk-ant-...` (main account, limited by rate limits)
