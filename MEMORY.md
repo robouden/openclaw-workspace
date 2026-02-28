@@ -140,8 +140,126 @@
 - **Anthropic (VPS):** `sk-ant-api03-qYNAf7xWQ...` (separate key for VPS, same account)
 - **Qwen (VPS):** `sk-325f602eb13f4476b2563feaedbe2728` (direct API key, stable)
 
+## AnyType Bot Account (Fresh Setup - 2026-02-28)
+
+**New bot account created on VPS:**
+- Name: `openclaw-bot-selfhosted`
+- Account ID: `A6JZwRq6eouJi4F5pumdZug7rG2jNLkGDBpKEwkDPUV96ZtS`
+- Account Key: `N4Hw/9GQmio2f4sBU7PXZbl5akrL+2kmhP7SZ9RJp956u5/08V9LgdW975DSYXSk8b3+kZbIP0sZpuEOxFwp6g==`
+- API Key: `DzVdxvMC41698O2sTET4e7KrusuU/zXW4V/7wCRuJlk=`
+- Space ID: `bafyreibwatfpuq23i74kdfzev5woe64aduy6u4fuijljmzycoawuanjmmq.35fpfsusofs1o`
+- Tech Space ID (auto): `bafyreif42oladpa4vafbnyldvmqwg7n6ag5jh5jhwt6332gqbd6xvy2xem.35fpfsusofs1o`
+
+**Status:** ✅ Account created, API key generated, space active
+**API Access:** 
+- HTTP API available on port 31012 (localhost)
+- gRPC on port 31010, gRPC-Web on 31011
+- Use API key in Authorization header: `Bearer DzVdxvMC41698O2sTET4e7KrusuU/zXW4V/7wCRuJlk=`
+- API docs: https://developers.anytype.io/
+
+**Self-Hosted Setup:** ✅ READY
+- Any device/user can connect with Account Key to sync workspace
+- OpenClaw on VPS has full HTTP API access for reading/writing pages and data
+
+## AnyType Sync Skill - COMPLETE ✅ (2026-02-28)
+
+**Created a professional, reusable OpenClaw skill for AnyType synchronization.**
+
+### What We Built
+
+**Skill Package:** `anytype-sync.skill` (18 KB, packaged and ready to share)
+
+**Contents:**
+1. **SKILL.md** (5.4 KB)
+   - Complete skill documentation
+   - Quick start guide
+   - Integration patterns
+   - Security best practices
+
+2. **scripts/anytype-api.js** (9 KB)
+   - Full-featured HTTP API client
+   - Methods: createPage, updatePage, queryPages, getPage, deletePage, listSpaces
+   - Authentication handling
+   - CLI interface for direct usage
+   - Supports env vars and config files
+
+3. **scripts/sync-notes.js** (9.5 KB)
+   - OpenClaw session backup automation
+   - Modes: backup (single), continuous (periodic), export (markdown)
+   - Reads MEMORY.md and daily notes
+   - Sync to AnyType or export to file
+   - Command-line interface with options
+
+4. **references/setup-guide.md** (5.4 KB)
+   - Step-by-step bot account creation
+   - AnyType CLI installation
+   - API key generation
+   - Self-hosted server setup
+   - Configuration options (CLI, env vars, config file)
+   - Troubleshooting guide
+
+5. **references/examples.md** (8.7 KB)
+   - 10 real-world integration patterns:
+     1. Daily session backup
+     2. Team workspace (multi-user)
+     3. Query AnyType from OpenClaw
+     4. Continuous Slack integration
+     5. Archive old sessions
+     6. Full-text search
+     7. Sync to Obsidian
+     8. Docker deployment
+     9. Monitoring & alerting
+     10. Development testing
+
+6. **references/api-docs.md** (10.6 KB)
+   - Complete AnyType HTTP API reference
+   - All endpoints documented
+   - Error codes and handling
+   - Rate limiting info
+   - Code examples (curl, JavaScript)
+   - Best practices
+
+### How to Use the Skill
+
+**Installation:**
+```bash
+# Copy the .skill file to OpenClaw skills directory
+cp anytype-sync.skill ~/.openclaw/workspace/skills/
+
+# Or install globally when published
+npm install -g @openclaw/anytype-sync
+```
+
+**Quick Setup (already done on your VPS):**
+1. Create bot account: `anytype auth create openclaw-bot`
+2. Generate API key: `anytype auth apikey create sync-key`
+3. Configure OpenClaw with credentials
+4. Run sync: `node sync-notes.js --type backup`
+
+**Slack Integration (Your preferred method):**
+- The VPS OpenClaw bot can call sync scripts from Slack
+- Example: `@openclaw sync` → Creates AnyType backup
+- Requires adding skill command handler to Slack integration
+
+### Distribution Ready
+
+✅ Validated by OpenClaw's skill-creator validator
+✅ Properly packaged as .skill file
+✅ All dependencies documented
+✅ Examples and troubleshooting included
+✅ Security best practices documented
+✅ Reusable for others (no hardcoded paths)
+
+### Next Steps
+
+- [ ] Test sync on VPS with real data
+- [ ] Create Slack command for sync (`@openclaw sync`)
+- [ ] Monitor first 24h of syncs
+- [ ] Publish to ClawHub (if sharing publicly)
+- [ ] Document Slack integration pattern in skill
+
 ## Pending / TODO
+- [ ] Test anytype-sync.skill with real session data
+- [ ] Set up Slack command integration
 - [ ] Monitor Qwen stability over 24h (no rate limits expected)
-- [ ] Telegram bot setup (Rob has tablet with Telegram)
 - [ ] Gmail API setup (Google Cloud project + OAuth credentials)
-- [ ] AnyType API integration
