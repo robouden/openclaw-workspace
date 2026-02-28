@@ -115,14 +115,21 @@
 
 ## Workload Distribution (2026-02-28)
 
-**VPS OpenClaw Model Switch:**
-- ✅ Primary changed from Claude Haiku → `qwen-portal/coder-model` (Qwen)
-- ✅ Gateway restarted and confirmed active
-- ✅ Status shows `default coder-model (128k ctx)`
-- **Effect:** Immediate reduction in Anthropic API usage for OpenClaw
-- Claude still available as fallback if needed
+**VPS OpenClaw Model Switch Attempt:**
+- ✅ Switched to `qwen-portal/coder-model` (Qwen) — tested successfully
+- ❌ Qwen OAuth token expired after ~1 hour of use
+- ❌ Qwen portal (https://portal.qwen.ai/) returning 404 — cannot refresh
+- ✅ Reverted back to `anthropic/claude-haiku-4-5-20251001` (Claude Haiku)
 
-**Next:** Monitor for 24h to check if rate limits resolve. If not, apply Option B or C.
+**Current Status (2026-02-28 09:16):**
+- Primary model: Claude Haiku (back to original)
+- Qwen issue: OAuth token expired, portal inaccessible
+- Rate limiting: Will resume affecting system
+
+**Lesson learned:**
+- Qwen free tier appears to have token expiry/refresh issues
+- Direct API key (not OAuth) would be more stable
+- Need to find stable free model or implement proper fallback strategy
 
 ## Pending / TODO
 - [ ] Monitor rate limiting over next 24h (after Qwen switch)
