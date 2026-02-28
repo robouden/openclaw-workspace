@@ -324,8 +324,28 @@ summary, _ := db.GetSpaceSummary(spaceID)
 activity, _ := db.GetRecentActivity(spaceID, limit)
 ```
 
+## Slack Integration
+
+Use the AnyType skill directly from Slack! See `slack/SETUP.md` for integration.
+
+**Quick example:**
+
+```
+@openclaw anytype spaces
+→ Lists all your workspaces
+
+@openclaw anytype summary <space-id>
+→ Shows object count and activity
+
+@openclaw anytype activity <space-id>
+→ Recent changes in workspace
+```
+
+Responses are formatted as beautiful Slack blocks for easy reading.
+
 ## Next Steps
 
+- See `slack/SETUP.md` for Slack bot integration
 - See `references/setup-guide.md` for bot account setup
 - See `references/examples.md` for integration patterns
 - See `cmd/anytype-db/main.go` for source code
@@ -334,3 +354,4 @@ activity, _ := db.GetRecentActivity(spaceID, limit)
 
 - GitHub: https://github.com/robouden/openclaw-workspace
 - Issues: https://github.com/robouden/openclaw-workspace/issues
+- Slack Integration Guide: `slack/SETUP.md`
