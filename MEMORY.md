@@ -288,12 +288,71 @@ npm install -g @openclaw/anytype-sync
 - ✅ Each space has independent database
 - Data format: Binary protobuf (needs decoding)
 
-**Next: Build Node.js monitor to:**
-1. Query SQLite space databases
-2. Detect changes (via mtime, checksums, or polling)
-3. Decode protobuf objects
-4. Sync to PostgreSQL
-5. Enable OpenClaw to query and take actions
+## anytype-monitor.js Built (2026-02-28 23:00)
+
+**New Script: `/skills/anytype-sync/scripts/anytype-monitor.js`**
+
+**Features:**
+- ✅ Lists all AnyType spaces in account
+- ✅ Opens space-specific SQLite databases
+- ✅ Reads all objects from _objects_docs table
+- ✅ Calculates checksums to detect changes
+- ✅ Syncs to PostgreSQL with automatic table creation
+- ✅ Tracks sync state (new/updated counts)
+- ✅ Watch mode for continuous monitoring (configurable interval)
+- ✅ Query synced objects from PostgreSQL
+- ✅ CLI interface with multiple commands
+
+**How It Works:**
+1. Connects to PostgreSQL (creates anytype_objects + anytype_sync_state tables)
+2. Discovers all spaces in AnyType account
+3. Reads SQLite database for each space
+4. Extracts object ID + binary data
+5. Calculates checksum for change detection
+6. Inserts new objects / updates changed ones
+7. Tracks sync state in PostgreSQL
+8. Repeats on configurable interval
+
+**Architecture:**
+```
+AnyType Space (SQLite DB)
+    ↓
+anytype-monitor.js (watch + sync)
+    ↓
+PostgreSQL (anytype_objects table)
+    ↓
+OpenClaw queries PostgreSQL
+```
+
+**Usage:**
+```bash
+# List all spaces
+node scripts/anytype-monitor.js list-spaces
+
+# Watch and sync continuously (default 60sec)
+node scripts/anytype-monitor.js --accountId A6JZ... watch
+
+# One-time sync
+node scripts/anytype-monitor.js sync-now
+
+# Check sync status
+node scripts/anytype-monitor.js status
+
+# Query synced objects
+node scripts/anytype-monitor.js query bafyrei...
+```
+
+**PostgreSQL Tables Created:**
+- `anytype_objects` - Synced workspace objects (id, space_id, type, title, data, checksum, etc.)
+- `anytype_sync_state` - Sync metadata (last_synced, object counts, etc.)
+
+**Next Steps:**
+- [ ] Test monitor script on VPS
+- [ ] Set up PostgreSQL connection string
+- [ ] Run initial sync
+- [ ] Decode protobuf objects (parse actual content, not just metadata)
+- [ ] Add OpenClaw skill command to trigger/query syncs
+- [ ] Create Slack notifications for new/updated objects
 
 ## Pending / TODO
 - [ ] Test anytype-sync.skill with real session data
