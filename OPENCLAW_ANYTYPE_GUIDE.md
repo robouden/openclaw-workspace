@@ -219,6 +219,51 @@ await mongoCollection.updateOne(
 
 ---
 
+## Call Node.js Helper from Anywhere
+
+### From OpenClaw's Main Process
+
+```javascript
+const AnyType = require('/root/openclaw-workspace/code/anytype-helper');
+const anytype = new AnyType();
+
+// Use anywhere in OpenClaw
+await anytype.write('bot-status', 'Bot Status', 'OpenClaw is running...');
+```
+
+### From OpenClaw's Event Handlers
+
+```javascript
+// When OpenClaw receives a message
+bot.on('message', async (msg) => {
+    await anytype.log('Message Received', `From: ${msg.author}\n\n${msg.content}`);
+});
+
+// When OpenClaw completes a task
+bot.on('taskComplete', async (task) => {
+    await anytype.updateTaskStatus(task.id, 'completed');
+});
+```
+
+### From OpenClaw's MongoDB Watchers
+
+```javascript
+// Watch MongoDB for changes
+const changeStream = collection.watch();
+
+changeStream.on('change', async (change) => {
+    if (change.operationType === 'insert') {
+        await anytype.syncFromMongo(change.fullDocument);
+    }
+
+    if (change.operationType === 'delete') {
+        await anytype.delete(`mongo-${change.documentKey._id}`);
+    }
+});
+```
+
+---
+
 ## Best Practices
 
 ### 1. Use Meaningful Filenames
@@ -262,6 +307,89 @@ try {
     console.error('✗ Sync failed:', error.message);
     // Handle error - maybe retry or log to MongoDB
 }
+```
+
+---
+
+## Complete Example: OpenClaw Integration
+
+```javascript
+const AnyType = require('./code/anytype-helper');
+const MongoClient = require('mongodb').MongoClient;
+
+class OpenClawAnyTypeSync {
+    constructor() {
+        this.anytype = new AnyType();
+    }
+
+    // Sync bot memory to AnyType
+    async saveBotMemory(memory) {
+        const content = `# Bot Memory Snapshot
+
+**Timestamp**: ${new Date().toISOString()}
+
+## Context
+${memory.context}
+
+## Recent Actions
+${memory.actions.map(a => `- ${a}`).join('\n')}
+
+## Current State
+\`\`\`json
+${JSON.stringify(memory.state, null, 2)}
+\`\`\`
+`;
+
+        await this.anytype.write('bot-memory', 'Bot Memory', content);
+    }
+
+    // Sync MongoDB tasks to AnyType
+    async syncTasksFromMongo(mongoUri) {
+        const client = await MongoClient.connect(mongoUri);
+        const db = client.db('openclaw');
+        const tasks = await db.collection('tasks').find({}).toArray();
+
+        for (const task of tasks) {
+            await this.anytype.createTask({
+                id: task._id.toString(),
+                title: task.title,
+                description: task.description,
+                status: task.status,
+                priority: task.priority
+            });
+        }
+
+        console.log(`✓ Synced ${tasks.length} tasks to AnyType`);
+    }
+
+    // Watch MongoDB and sync changes
+    async watchMongo(mongoUri) {
+        const client = await MongoClient.connect(mongoUri);
+        const db = client.db('openclaw');
+        const collection = db.collection('tasks');
+
+        const changeStream = collection.watch();
+
+        changeStream.on('change', async (change) => {
+            if (change.operationType === 'insert' || change.operationType === 'update') {
+                await this.anytype.syncFromMongo(change.fullDocument);
+                console.log(`✓ Synced ${change.documentKey._id} to AnyType`);
+            }
+
+            if (change.operationType === 'delete') {
+                await this.anytype.delete(`mongo-${change.documentKey._id}`);
+                console.log(`✓ Deleted ${change.documentKey._id} from AnyType`);
+            }
+        });
+
+        console.log('✓ Watching MongoDB for changes...');
+    }
+}
+
+// Usage
+const sync = new OpenClawAnyTypeSync();
+await sync.saveBotMemory(botMemory);
+await sync.watchMongo('mongodb://localhost:27017');
 ```
 
 ---
@@ -342,5 +470,6 @@ ssh root@65.108.24.131 "rm /root/anytype-workspace/test.md"
 **Need Help?**
 - Check logs: `journalctl -u anytype-workspace-sync -f`
 - Read full docs: [README.md](code/anytype-workspace-sync/README.md)
+- Integration guide: [ANYTYPE_SYNC_SETUP.md](ANYTYPE_SYNC_SETUP.md)
 
 **GitHub**: https://github.com/robouden/openclaw-workspace

@@ -13,13 +13,14 @@ import (
 
 const (
 	workspaceDir = "/root/anytype-workspace"
-	spaceID      = "bafyreietc6lmsanpkyfz4m3x2xd4hb5vvxex7ywalouqcugufarmhy3nue.10piockh34xft"
-	grpcAddr     = "127.0.0.1:31009" // Actual AnyType gRPC port (not 31011)
+	spaceID      = "bafyreig4q7t3vt7b7zmvfv3emj7jfrvjamuhu4crws3dhn3uaxhh3u37k4.10piockh34xft"
+	grpcAddr     = "127.0.0.1:31010" // Actual AnyType gRPC port
 )
 
 var (
 	fileTimestamps = make(map[string]time.Time)
 	debounceTime   = 2 * time.Second
+	objectMap      *ObjectMap
 )
 
 // FileChange represents a markdown file change
@@ -58,11 +59,11 @@ func ParseMarkdown(filepath string) (*FileChange, error) {
 }
 
 // SyncFile processes a markdown file for sync
-func SyncFile(ctx context.Context, client *AnyTypeClient, filepath string) {
+func SyncFile(ctx context.Context, client *AnyTypeClient, filepath string) (string, error) {
 	change, err := ParseMarkdown(filepath)
 	if err != nil {
 		fmt.Printf("[%s] ✗ Error parsing %s: %v\n", time.Now().Format(time.RFC3339), filepath, err)
-		return
+		return "", err
 	}
 
 	fmt.Printf("[%s] Syncing %s...\n", time.Now().Format(time.RFC3339), change.Filename)
@@ -70,15 +71,62 @@ func SyncFile(ctx context.Context, client *AnyTypeClient, filepath string) {
 	// Sync to AnyType via gRPC (if connected)
 	if client == nil {
 		fmt.Printf("[%s] ⚠ %s queued (gRPC client not connected)\n", time.Now().Format(time.RFC3339), change.Filename)
-		return
+		return "", fmt.Errorf("client not connected")
 	}
 
-	if err := client.SyncMarkdown(ctx, change, spaceID); err != nil {
+	// Get object ID from the sync operation
+	objectID, err := client.SyncMarkdownWithID(ctx, change, spaceID)
+	if err != nil {
 		fmt.Printf("[%s] ✗ Sync error for %s: %v\n", time.Now().Format(time.RFC3339), change.Filename, err)
-		return
+		return "", err
+	}
+
+	// Store the object ID mapping
+	if objectMap != nil {
+		if err := objectMap.Set(change.Filename, objectID); err != nil {
+			fmt.Printf("[%s] ⚠ Failed to save object mapping: %v\n", time.Now().Format(time.RFC3339), err)
+		}
 	}
 
 	fmt.Printf("[%s] ✓ %s synced to AnyType\n", time.Now().Format(time.RFC3339), change.Filename)
+	return objectID, nil
+}
+
+// DeleteFile processes a markdown file deletion
+func DeleteFile(ctx context.Context, client *AnyTypeClient, filepath string) {
+	filename := strings.TrimSuffix(filepath[strings.LastIndex(filepath, "/")+1:], ".md")
+
+	fmt.Printf("[%s] Deleting %s...\n", time.Now().Format(time.RFC3339), filename)
+
+	// Delete from AnyType via gRPC (if connected)
+	if client == nil {
+		fmt.Printf("[%s] ⚠ %s delete queued (gRPC client not connected)\n", time.Now().Format(time.RFC3339), filename)
+		return
+	}
+
+	// Get object ID from mapping
+	if objectMap == nil {
+		fmt.Printf("[%s] ✗ Object map not initialized\n", time.Now().Format(time.RFC3339))
+		return
+	}
+
+	objectID, exists := objectMap.Get(filename)
+	if !exists {
+		fmt.Printf("[%s] ⚠ No object ID found for %s (may have been deleted already)\n", time.Now().Format(time.RFC3339), filename)
+		return
+	}
+
+	if err := client.DeleteMarkdown(ctx, objectID); err != nil {
+		fmt.Printf("[%s] ✗ Delete error for %s: %v\n", time.Now().Format(time.RFC3339), filename, err)
+		return
+	}
+
+	// Remove from object map
+	if err := objectMap.Delete(filename); err != nil {
+		fmt.Printf("[%s] ⚠ Failed to update object mapping: %v\n", time.Now().Format(time.RFC3339), err)
+	}
+
+	fmt.Printf("[%s] ✓ %s deleted from AnyType\n", time.Now().Format(time.RFC3339), filename)
 }
 
 // WatchDirectory monitors for markdown file changes
@@ -122,12 +170,18 @@ func WatchDirectory(ctx context.Context, dir string, client *AnyTypeClient, watc
 			}
 			fileTimestamps[event.Name] = now
 
-			// Wait for file to stabilize
-			time.Sleep(debounceTime)
+			// Handle different event types
+			if event.Op&fsnotify.Remove == fsnotify.Remove {
+				// File was deleted
+				DeleteFile(ctx, client, event.Name)
+			} else {
+				// Wait for file to stabilize
+				time.Sleep(debounceTime)
 
-			// Check if file still exists
-			if _, err := os.Stat(event.Name); err == nil {
-				SyncFile(ctx, client, event.Name)
+				// Check if file still exists (for create/write events)
+				if _, err := os.Stat(event.Name); err == nil {
+					SyncFile(ctx, client, event.Name)
+				}
 			}
 
 		case err, ok := <-watcher.Errors:
@@ -161,6 +215,14 @@ func InitialSync(ctx context.Context, dir string, client *AnyTypeClient) error {
 func main() {
 	ctx := context.Background()
 
+	// Initialize object map
+	var err error
+	objectMap, err = NewObjectMap()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to initialize object map: %v\n", err)
+		os.Exit(1)
+	}
+
 	// Check workspace directory exists
 	if _, err := os.Stat(workspaceDir); os.IsNotExist(err) {
 		fmt.Fprintf(os.Stderr, "Error: %s does not exist\n", workspaceDir)
@@ -189,6 +251,13 @@ func main() {
 		// Health check
 		if err := client.HealthCheck(ctx); err != nil {
 			fmt.Printf("[%s] WARNING: Health check failed: %v\n", time.Now().Format(time.RFC3339), err)
+		}
+
+		// Open the space so we can create objects in it
+		fmt.Printf("[%s] Opening space %s...\n", time.Now().Format(time.RFC3339), spaceID)
+		if err := client.OpenSpace(ctx, spaceID); err != nil {
+			fmt.Printf("[%s] WARNING: Failed to open space: %v\n", time.Now().Format(time.RFC3339), err)
+			fmt.Printf("[%s] Will continue but sync may fail\n", time.Now().Format(time.RFC3339))
 		}
 	}
 

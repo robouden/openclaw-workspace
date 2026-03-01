@@ -1,0 +1,36 @@
+# Binaries
+anytype-workspace-sync
+anytype-workspace-sync-bin
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binaries
+*.test
+
+# Build output
+/bin/
+/build/
+
+# Go workspace file
+go.work
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.log
+*.tmp
+nohup.out
+
+# Object map (runtime data)
+.anytype-workspace-objectmap.json
