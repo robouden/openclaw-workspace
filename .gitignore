@@ -15,3 +15,10 @@ node_modules/
 *.tmp
 *.log
 *.swp
+
+# Compiled Go binaries
+code/anytype-workspace-sync/anytype-workspace-sync
+code/anytype-workspace-sync/anytype-workspace-sync-bin
+*.exe
+*.test
+*.out

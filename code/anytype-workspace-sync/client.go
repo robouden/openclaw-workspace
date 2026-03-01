@@ -59,6 +59,16 @@ func (c *AnyTypeClient) Close() error {
 	return nil
 }
 
+// OpenSpace opens/joins a space so we can create objects in it
+func (c *AnyTypeClient) OpenSpace(ctx context.Context, spaceID string) error {
+	if c.conn == nil {
+		return fmt.Errorf("not connected")
+	}
+
+	// We'll implement this in api.go
+	return c.openSpaceRPC(ctx, spaceID)
+}
+
 // HealthCheck verifies connection to AnyType
 func (c *AnyTypeClient) HealthCheck(ctx context.Context) error {
 	if c.conn == nil {
