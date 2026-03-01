@@ -28,3 +28,15 @@ bash /root/.openclaw/workspace/scripts/nginx-monitor.sh
 - Path traversal attempts (any)
 - 5xx error spikes (>10 in 30min)
 - Single IP sending >100 requests in 30min
+
+## Screenshot Monitor
+Watch for Screenshot_20260301-074812 (33KB) syncing from AnyType:
+
+```
+bash /root/.openclaw/workspace/scripts/watch-screenshot.sh
+```
+
+- If exit code is 0 (file found): send alert to D0AHMTHF201 with "📸 Screenshot synced: Screenshot_20260301-074812"
+- If exit code is 1: no action needed (still syncing)
+- Check every 2 minutes. Track last check time in memory/heartbeat-state.json under key "screenshot_monitor".
+- Stop monitoring once file is found and alert sent.

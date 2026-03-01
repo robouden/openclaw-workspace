@@ -1,8 +1,9 @@
 {
   "lastChecks": {
-    "vps_monitor": 1772205867,
-    "nginx_monitor": 1772205867,
+    "vps_monitor": 1772370600,
+    "nginx_monitor": 1772370600,
     "email": 0,
-    "calendar": 0
+    "calendar": 0,
+    "screenshot_monitor": 1772370600
   }
 }
