@@ -19,6 +19,9 @@ func (c *AnyTypeClient) openSpaceRPC(ctx context.Context, spaceID string) error 
 	// Create gRPC client stub
 	client := service.NewClientCommandsClient(c.conn)
 
+	// Add authentication to context
+	ctx = c.withAuth(ctx)
+
 	// Create request
 	req := &pb.RpcWorkspaceOpenRequest{
 		SpaceId: spaceID,
@@ -40,9 +43,9 @@ func (c *AnyTypeClient) openSpaceRPC(ctx context.Context, spaceID string) error 
 }
 
 // SyncMarkdownToAnyType creates or updates a page in AnyType from markdown
-func (c *AnyTypeClient) SyncMarkdownToAnyType(ctx context.Context, change *FileChange, spaceID string) error {
+func (c *AnyTypeClient) SyncMarkdownToAnyType(ctx context.Context, change *FileChange, spaceID string) (string, error) {
 	if c.conn == nil {
-		return fmt.Errorf("not connected to AnyType")
+		return "", fmt.Errorf("not connected to AnyType")
 	}
 
 	fmt.Printf("[%s] gRPC: Creating/updating '%s' in AnyType\n", time.Now().Format(time.RFC3339), change.Title)
@@ -50,11 +53,11 @@ func (c *AnyTypeClient) SyncMarkdownToAnyType(ctx context.Context, change *FileC
 	// Create a new object (page) in the space with title and content
 	objectID, err := c.createObject(ctx, change.Title, change.Content, spaceID)
 	if err != nil {
-		return fmt.Errorf("failed to create object: %w", err)
+		return "", fmt.Errorf("failed to create object: %w", err)
 	}
 
 	fmt.Printf("[%s] gRPC: Created/updated object '%s' successfully (ID: %s)\n", time.Now().Format(time.RFC3339), change.Title, objectID)
-	return nil
+	return objectID, nil
 }
 
 // createObject invokes ObjectCreate RPC to create a new AnyType object
@@ -63,6 +66,9 @@ func (c *AnyTypeClient) createObject(ctx context.Context, title string, content 
 
 	// Create gRPC client stub
 	client := service.NewClientCommandsClient(c.conn)
+
+	// Add authentication to context
+	ctx = c.withAuth(ctx)
 
 	// Create details struct with title and content
 	details := &types.Struct{
@@ -81,9 +87,12 @@ func (c *AnyTypeClient) createObject(ctx context.Context, title string, content 
 	}
 
 	// Create request with space ID and object details
+	// Use "ot-note" as the object type (AnyType note type)
 	req := &pb.RpcObjectCreateRequest{
-		SpaceId: spaceID,
-		Details: details,
+		SpaceId:              spaceID,
+		Details:              details,
+		ObjectTypeUniqueKey:  "ot-note",
+		InternalFlags:        nil,
 	}
 
 	// Call ObjectCreate RPC
@@ -100,6 +109,36 @@ func (c *AnyTypeClient) createObject(ctx context.Context, title string, content 
 	objectID := resp.ObjectId
 	fmt.Printf("[%s]   → Created object ID: %s\n", time.Now().Format(time.RFC3339), objectID)
 	return objectID, nil
+}
+
+// deleteObject invokes ObjectListDelete RPC to delete an AnyType object
+func (c *AnyTypeClient) deleteObject(ctx context.Context, objectID string) error {
+	fmt.Printf("[%s]   → Deleting object ID: %s\n", time.Now().Format(time.RFC3339), objectID)
+
+	// Create gRPC client stub
+	client := service.NewClientCommandsClient(c.conn)
+
+	// Add authentication to context
+	ctx = c.withAuth(ctx)
+
+	// Create request to delete the object
+	req := &pb.RpcObjectListDeleteRequest{
+		ObjectIds: []string{objectID},
+	}
+
+	// Call ObjectListDelete RPC
+	resp, err := client.ObjectListDelete(ctx, req)
+	if err != nil {
+		return c.handleGRPCError(err)
+	}
+
+	// Check response error
+	if resp.Error != nil && resp.Error.Code != pb.RpcObjectListDeleteResponseError_NULL {
+		return fmt.Errorf("ObjectListDelete failed: %s (%s)", resp.Error.Description, resp.Error.Code)
+	}
+
+	fmt.Printf("[%s]   → Successfully deleted object\n", time.Now().Format(time.RFC3339))
+	return nil
 }
 
 // handleGRPCError provides detailed error messages for gRPC failures
