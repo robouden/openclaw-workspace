@@ -1,0 +1,26 @@
+{
+  "name": "anytype-sync",
+  "version": "1.0.0",
+  "description": "OpenClaw skill for AnyType workspace queries and Slack integration",
+  "main": "slack/handler.js",
+  "scripts": {
+    "test": "node scripts/anytype.js spaces",
+    "start": "node slack/handler.js"
+  },
+  "keywords": [
+    "anytype",
+    "openclaw",
+    "slack",
+    "mongodb",
+    "workspace"
+  ],
+  "author": "Rob Oudendijk",
+  "license": "MIT",
+  "dependencies": {
+    "mongodb": "^6.4.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/robouden/openclaw-workspace.git"
+  }
+}
