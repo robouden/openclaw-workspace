@@ -3,9 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/anyproto/anytype-heart/pb"
+	"github.com/anyproto/anytype-heart/pkg/lib/pb/model"
 	"github.com/anyproto/anytype-heart/pb/service"
 	"github.com/gogo/protobuf/types"
 	"google.golang.org/grpc/codes"
@@ -139,6 +142,60 @@ func (c *AnyTypeClient) deleteObject(ctx context.Context, objectID string) error
 
 	fmt.Printf("[%s]   → Successfully deleted object\n", time.Now().Format(time.RFC3339))
 	return nil
+}
+
+// detectFileType determines the file type based on file extension
+func detectFileType(filePath string) model.BlockContentFileType {
+	ext := strings.ToLower(filepath.Ext(filePath))
+
+	switch ext {
+	case ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg":
+		return model.BlockContentFile_Image
+	case ".pdf":
+		return model.BlockContentFile_PDF
+	case ".mp4", ".mov", ".avi", ".mkv", ".webm":
+		return model.BlockContentFile_Video
+	case ".mp3", ".wav", ".ogg", ".m4a", ".flac":
+		return model.BlockContentFile_Audio
+	default:
+		return model.BlockContentFile_File
+	}
+}
+
+// uploadFile uploads a file (image, PDF, etc.) to AnyType
+func (c *AnyTypeClient) uploadFile(ctx context.Context, filePath string, spaceID string) (string, error) {
+	// Detect file type from extension
+	fileType := detectFileType(filePath)
+
+	fmt.Printf("[%s]   → Uploading file: %s (type: %s)\n", time.Now().Format(time.RFC3339), filePath, fileType)
+
+	// Create gRPC client stub
+	client := service.NewClientCommandsClient(c.conn)
+
+	// Add authentication to context
+	ctx = c.withAuth(ctx)
+
+	// Create request with local file path
+	req := &pb.RpcFileUploadRequest{
+		SpaceId:   spaceID,
+		LocalPath: filePath,
+		Type:      fileType,
+	}
+
+	// Call FileUpload RPC
+	resp, err := client.FileUpload(ctx, req)
+	if err != nil {
+		return "", c.handleGRPCError(err)
+	}
+
+	// Check response error
+	if resp.Error != nil && resp.Error.Code != pb.RpcFileUploadResponseError_NULL {
+		return "", fmt.Errorf("FileUpload failed: %s (%s)", resp.Error.Description, resp.Error.Code)
+	}
+
+	objectID := resp.ObjectId
+	fmt.Printf("[%s]   → Uploaded file successfully (Object ID: %s)\n", time.Now().Format(time.RFC3339), objectID)
+	return objectID, nil
 }
 
 // handleGRPCError provides detailed error messages for gRPC failures
