@@ -13,8 +13,8 @@ import (
 
 const (
 	workspaceDir = "/root/anytype-workspace"
-	spaceID      = "bafyreietc6lmsanpkyfz4m3x2xd4hb5vvxex7ywalouqcugufarmhy3nue.10piockh34xft"
-	grpcAddr     = "127.0.0.1:31009" // Actual AnyType gRPC port (not 31011)
+	spaceID      = "bafyreifambxlehn6wbjsjkzbntsfhiz4deokhzurpai7ma3xqcg7r7sx6a.10piockh34xft"
+	grpcAddr     = "127.0.0.1:31010" // Actual AnyType gRPC port
 )
 
 var (
@@ -189,6 +189,13 @@ func main() {
 		// Health check
 		if err := client.HealthCheck(ctx); err != nil {
 			fmt.Printf("[%s] WARNING: Health check failed: %v\n", time.Now().Format(time.RFC3339), err)
+		}
+
+		// Open the space so we can create objects in it
+		fmt.Printf("[%s] Opening space %s...\n", time.Now().Format(time.RFC3339), spaceID)
+		if err := client.OpenSpace(ctx, spaceID); err != nil {
+			fmt.Printf("[%s] WARNING: Failed to open space: %v\n", time.Now().Format(time.RFC3339), err)
+			fmt.Printf("[%s] Will continue but sync may fail\n", time.Now().Format(time.RFC3339))
 		}
 	}
 

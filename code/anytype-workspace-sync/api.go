@@ -5,29 +5,101 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/anyproto/anytype-heart/pb"
+	"github.com/anyproto/anytype-heart/pb/service"
+	"github.com/gogo/protobuf/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
+// openSpaceRPC opens a space via gRPC so we can create objects in it
+func (c *AnyTypeClient) openSpaceRPC(ctx context.Context, spaceID string) error {
+	fmt.Printf("[%s] gRPC: Opening workspace/space %s...\n", time.Now().Format(time.RFC3339), spaceID)
+
+	// Create gRPC client stub
+	client := service.NewClientCommandsClient(c.conn)
+
+	// Create request
+	req := &pb.RpcWorkspaceOpenRequest{
+		SpaceId: spaceID,
+	}
+
+	// Call WorkspaceOpen RPC
+	resp, err := client.WorkspaceOpen(ctx, req)
+	if err != nil {
+		return c.handleGRPCError(err)
+	}
+
+	// Check response error
+	if resp.Error != nil && resp.Error.Code != pb.RpcWorkspaceOpenResponseError_NULL {
+		return fmt.Errorf("WorkspaceOpen failed: %s (%s)", resp.Error.Description, resp.Error.Code)
+	}
+
+	fmt.Printf("[%s] gRPC: Workspace/space opened successfully\n", time.Now().Format(time.RFC3339))
+	return nil
+}
+
 // SyncMarkdownToAnyType creates or updates a page in AnyType from markdown
-// STUB: Currently just logs what would be synced, actual gRPC calls TODO
 func (c *AnyTypeClient) SyncMarkdownToAnyType(ctx context.Context, change *FileChange, spaceID string) error {
 	if c.conn == nil {
 		return fmt.Errorf("not connected to AnyType")
 	}
 
-	fmt.Printf("[%s] gRPC: Would sync '%s' to AnyType (STUB - not implemented yet)\n",
-		time.Now().Format(time.RFC3339), change.Title)
-	fmt.Printf("[%s]   → Space ID: %s\n", time.Now().Format(time.RFC3339), spaceID)
-	fmt.Printf("[%s]   → Title: %s\n", time.Now().Format(time.RFC3339), change.Title)
-	fmt.Printf("[%s]   → Content length: %d bytes\n", time.Now().Format(time.RFC3339), len(change.Content))
-	fmt.Printf("[%s]   → Path: %s\n", time.Now().Format(time.RFC3339), change.Path)
+	fmt.Printf("[%s] gRPC: Creating/updating '%s' in AnyType\n", time.Now().Format(time.RFC3339), change.Title)
 
-	// TODO: Implement actual gRPC calls once proto types are discovered
-	// For now, just simulate success so file watcher stays active
+	// Create a new object (page) in the space with title and content
+	objectID, err := c.createObject(ctx, change.Title, change.Content, spaceID)
+	if err != nil {
+		return fmt.Errorf("failed to create object: %w", err)
+	}
 
-	fmt.Printf("[%s] ⚠ File queued (gRPC sync not implemented yet)\n", time.Now().Format(time.RFC3339))
+	fmt.Printf("[%s] gRPC: Created/updated object '%s' successfully (ID: %s)\n", time.Now().Format(time.RFC3339), change.Title, objectID)
 	return nil
+}
+
+// createObject invokes ObjectCreate RPC to create a new AnyType object
+func (c *AnyTypeClient) createObject(ctx context.Context, title string, content string, spaceID string) (string, error) {
+	fmt.Printf("[%s]   → Creating object: title='%s', content_len=%d bytes\n", time.Now().Format(time.RFC3339), title, len(content))
+
+	// Create gRPC client stub
+	client := service.NewClientCommandsClient(c.conn)
+
+	// Create details struct with title and content
+	details := &types.Struct{
+		Fields: map[string]*types.Value{
+			"name": {
+				Kind: &types.Value_StringValue{
+					StringValue: title,
+				},
+			},
+			"description": {
+				Kind: &types.Value_StringValue{
+					StringValue: content,
+				},
+			},
+		},
+	}
+
+	// Create request with space ID and object details
+	req := &pb.RpcObjectCreateRequest{
+		SpaceId: spaceID,
+		Details: details,
+	}
+
+	// Call ObjectCreate RPC
+	resp, err := client.ObjectCreate(ctx, req)
+	if err != nil {
+		return "", c.handleGRPCError(err)
+	}
+
+	// Check response error
+	if resp.Error != nil && resp.Error.Code != pb.RpcObjectCreateResponseError_NULL {
+		return "", fmt.Errorf("ObjectCreate failed: %s (%s)", resp.Error.Description, resp.Error.Code)
+	}
+
+	objectID := resp.ObjectId
+	fmt.Printf("[%s]   → Created object ID: %s\n", time.Now().Format(time.RFC3339), objectID)
+	return objectID, nil
 }
 
 // handleGRPCError provides detailed error messages for gRPC failures
@@ -45,7 +117,7 @@ func (c *AnyTypeClient) handleGRPCError(err error) error {
 	case codes.OK:
 		return nil
 	case codes.Unavailable:
-		return fmt.Errorf("AnyType service unavailable")
+		return fmt.Errorf("AnyType service unavailable - check if AnyType is running")
 	case codes.DeadlineExceeded:
 		return fmt.Errorf("gRPC call timeout")
 	case codes.PermissionDenied:
@@ -56,6 +128,8 @@ func (c *AnyTypeClient) handleGRPCError(err error) error {
 		return fmt.Errorf("invalid request: %s", st.Message())
 	case codes.Internal:
 		return fmt.Errorf("AnyType internal error: %s", st.Message())
+	case codes.Unauthenticated:
+		return fmt.Errorf("not authenticated - check network membership")
 	default:
 		return fmt.Errorf("gRPC error %s: %s", st.Code(), st.Message())
 	}
