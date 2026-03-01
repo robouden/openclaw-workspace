@@ -2,10 +2,6 @@
 
 Skills define _how_ tools work. This file is for _your_ specifics — the stuff that's unique to your setup.
 
-## Slack
-- Rob's user ID: `U025D964S`
-- Rob's DM channel ID: `D0AHMTHF201`
-
 ## What Goes Here
 
 Things like:
