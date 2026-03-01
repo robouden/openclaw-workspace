@@ -52,10 +52,7 @@ flowchart TD
     Ignore --> End([End])
     RateLimitError --> End
 
-    style SyncSuccess fill:#90EE90
-    style RateLimitError fill:#FFB6C1
-    style P2PBroadcast fill:#87CEEB
-    style CoordinatorNode fill:#DDA0DD
+
 ```
 
 ## File Watcher Flow
@@ -95,9 +92,7 @@ flowchart TD
     DeleteRPC --> RemoveMap[Remove from Object Map]
     RemoveMap --> WaitEvent
 
-    style SyncFile fill:#90EE90
-    style DeleteFlow fill:#FFB6C1
-    style WatchDir fill:#87CEEB
+
 ```
 
 ## Network Topology
@@ -134,10 +129,7 @@ graph TB
     NetID <-->|Global Sync| Finland
     NetID <-->|Global Sync| Japan
 
-    style Workspace fill:#FFE4B5
-    style SyncService fill:#90EE90
-    style Coordinator fill:#DDA0DD
-    style NetID fill:#87CEEB
+
 ```
 
 ## File Type Detection
@@ -163,11 +155,8 @@ flowchart LR
     MarkdownRPC --> AnyType[(AnyType Space)]
     FileRPC --> AnyType
 
-    style Image fill:#FFB6C1
-    style PDF fill:#DDA0DD
-    style Video fill:#87CEEB
-    style Audio fill:#98FB98
-    style Markdown fill:#FFE4B5
+  
+
 ```
 
 ## Automatic Token Renewal Flow
