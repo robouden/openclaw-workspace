@@ -31,6 +31,31 @@ type FileChange struct {
 	Content  string
 }
 
+// isSupported checks if a file type should be synced
+func isSupportedFile(filename string) bool {
+	ext := strings.ToLower(filepath.Ext(filename))
+
+	supportedExts := []string{
+		// Markdown
+		".md",
+		// Images
+		".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg",
+		// PDFs
+		".pdf",
+		// Videos
+		".mp4", ".mov", ".avi", ".mkv", ".webm",
+		// Audio
+		".mp3", ".wav", ".ogg", ".m4a", ".flac",
+	}
+
+	for _, supported := range supportedExts {
+		if ext == supported {
+			return true
+		}
+	}
+	return false
+}
+
 // ParseMarkdown extracts title and content from markdown file
 func ParseMarkdown(filepath string) (*FileChange, error) {
 	content, err := os.ReadFile(filepath)
@@ -58,43 +83,64 @@ func ParseMarkdown(filepath string) (*FileChange, error) {
 	}, nil
 }
 
-// SyncFile processes a markdown file for sync
-func SyncFile(ctx context.Context, client *AnyTypeClient, filepath string) (string, error) {
-	change, err := ParseMarkdown(filepath)
-	if err != nil {
-		fmt.Printf("[%s] ✗ Error parsing %s: %v\n", time.Now().Format(time.RFC3339), filepath, err)
-		return "", err
-	}
-
-	fmt.Printf("[%s] Syncing %s...\n", time.Now().Format(time.RFC3339), change.Filename)
-
-	// Sync to AnyType via gRPC (if connected)
+// SyncFile processes a file for sync (markdown or binary)
+func SyncFile(ctx context.Context, client *AnyTypeClient, filePath string) (string, error) {
+	// Check if client is connected
 	if client == nil {
-		fmt.Printf("[%s] ⚠ %s queued (gRPC client not connected)\n", time.Now().Format(time.RFC3339), change.Filename)
+		fmt.Printf("[%s] ⚠ File queued (gRPC client not connected)\n", time.Now().Format(time.RFC3339))
 		return "", fmt.Errorf("client not connected")
 	}
 
-	// Get object ID from the sync operation
-	objectID, err := client.SyncMarkdownWithID(ctx, change, spaceID)
-	if err != nil {
-		fmt.Printf("[%s] ✗ Sync error for %s: %v\n", time.Now().Format(time.RFC3339), change.Filename, err)
-		return "", err
+	// Extract filename without extension for object mapping
+	filename := filePath[strings.LastIndex(filePath, "/")+1:]
+	ext := filepath.Ext(filename)
+	filenameNoExt := strings.TrimSuffix(filename, ext)
+
+	fmt.Printf("[%s] Syncing %s...\n", time.Now().Format(time.RFC3339), filename)
+
+	var objectID string
+	var err error
+
+	// Handle different file types
+	if strings.HasSuffix(filePath, ".md") {
+		// Markdown file - use existing markdown sync
+		change, parseErr := ParseMarkdown(filePath)
+		if parseErr != nil {
+			fmt.Printf("[%s] ✗ Error parsing %s: %v\n", time.Now().Format(time.RFC3339), filePath, parseErr)
+			return "", parseErr
+		}
+
+		objectID, err = client.SyncMarkdownWithID(ctx, change, spaceID)
+		if err != nil {
+			fmt.Printf("[%s] ✗ Sync error for %s: %v\n", time.Now().Format(time.RFC3339), filename, err)
+			return "", err
+		}
+	} else {
+		// Binary file (image, PDF, video, audio) - use file upload
+		objectID, err = client.uploadFile(ctx, filePath, spaceID)
+		if err != nil {
+			fmt.Printf("[%s] ✗ Upload error for %s: %v\n", time.Now().Format(time.RFC3339), filename, err)
+			return "", err
+		}
 	}
 
 	// Store the object ID mapping
 	if objectMap != nil {
-		if err := objectMap.Set(change.Filename, objectID); err != nil {
+		if err := objectMap.Set(filenameNoExt, objectID); err != nil {
 			fmt.Printf("[%s] ⚠ Failed to save object mapping: %v\n", time.Now().Format(time.RFC3339), err)
 		}
 	}
 
-	fmt.Printf("[%s] ✓ %s synced to AnyType\n", time.Now().Format(time.RFC3339), change.Filename)
+	fmt.Printf("[%s] ✓ %s synced to AnyType (ID: %s)\n", time.Now().Format(time.RFC3339), filename, objectID)
 	return objectID, nil
 }
 
-// DeleteFile processes a markdown file deletion
-func DeleteFile(ctx context.Context, client *AnyTypeClient, filepath string) {
-	filename := strings.TrimSuffix(filepath[strings.LastIndex(filepath, "/")+1:], ".md")
+// DeleteFile processes a file deletion
+func DeleteFile(ctx context.Context, client *AnyTypeClient, filePath string) {
+	// Extract filename and remove extension for object mapping
+	filename := filePath[strings.LastIndex(filePath, "/")+1:]
+	ext := filepath.Ext(filename)
+	filenameNoExt := strings.TrimSuffix(filename, ext)
 
 	fmt.Printf("[%s] Deleting %s...\n", time.Now().Format(time.RFC3339), filename)
 
@@ -110,7 +156,7 @@ func DeleteFile(ctx context.Context, client *AnyTypeClient, filepath string) {
 		return
 	}
 
-	objectID, exists := objectMap.Get(filename)
+	objectID, exists := objectMap.Get(filenameNoExt)
 	if !exists {
 		fmt.Printf("[%s] ⚠ No object ID found for %s (may have been deleted already)\n", time.Now().Format(time.RFC3339), filename)
 		return
@@ -122,7 +168,7 @@ func DeleteFile(ctx context.Context, client *AnyTypeClient, filepath string) {
 	}
 
 	// Remove from object map
-	if err := objectMap.Delete(filename); err != nil {
+	if err := objectMap.Delete(filenameNoExt); err != nil {
 		fmt.Printf("[%s] ⚠ Failed to update object mapping: %v\n", time.Now().Format(time.RFC3339), err)
 	}
 
@@ -156,8 +202,8 @@ func WatchDirectory(ctx context.Context, dir string, client *AnyTypeClient, watc
 				return nil
 			}
 
-			// Only process .md files
-			if !strings.HasSuffix(event.Name, ".md") {
+			// Only process supported file types
+			if !isSupportedFile(event.Name) {
 				continue
 			}
 
@@ -193,7 +239,7 @@ func WatchDirectory(ctx context.Context, dir string, client *AnyTypeClient, watc
 	}
 }
 
-// InitialSync syncs all existing markdown files
+// InitialSync syncs all existing supported files
 func InitialSync(ctx context.Context, dir string, client *AnyTypeClient) error {
 	fmt.Printf("[%s] Running initial sync...\n", time.Now().Format(time.RFC3339))
 
@@ -203,7 +249,7 @@ func InitialSync(ctx context.Context, dir string, client *AnyTypeClient) error {
 	}
 
 	for _, file := range files {
-		if !file.IsDir() && strings.HasSuffix(file.Name(), ".md") {
+		if !file.IsDir() && isSupportedFile(file.Name()) {
 			SyncFile(ctx, client, filepath.Join(dir, file.Name()))
 		}
 	}
