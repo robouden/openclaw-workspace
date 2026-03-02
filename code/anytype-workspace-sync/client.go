@@ -157,7 +157,25 @@ func (c *AnyTypeClient) refreshToken(ctx context.Context) error {
 	c.sessionToken = newToken
 	c.lastRefresh = time.Now()
 
-	fmt.Printf("[%s] ✓ Session token refreshed successfully\n", time.Now().Format(time.RFC3339))
+	// Step 7: Reconnect gRPC — the old connection died when anytype restarted
+	fmt.Printf("[%s]   → Reconnecting gRPC to %s...\n", time.Now().Format(time.RFC3339), c.addr)
+	if c.conn != nil {
+		c.conn.Close()
+	}
+	connCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	newConn, err := grpc.DialContext(
+		connCtx,
+		c.addr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to reconnect gRPC after token refresh: %w", err)
+	}
+	c.conn = newConn
+
+	fmt.Printf("[%s] ✓ Session token refreshed and gRPC reconnected\n", time.Now().Format(time.RFC3339))
 	return nil
 }
 
