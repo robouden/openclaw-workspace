@@ -53,19 +53,24 @@ func (c *AnyTypeClient) SyncMarkdownToAnyType(ctx context.Context, change *FileC
 
 	fmt.Printf("[%s] gRPC: Creating/updating '%s' in AnyType\n", time.Now().Format(time.RFC3339), change.Title)
 
-	// Create a new object (page) in the space with title and content
-	objectID, err := c.createObject(ctx, change.Title, change.Content, spaceID)
+	// Create a new object (page) in the space with the title
+	objectID, err := c.createObject(ctx, change.Title, spaceID)
 	if err != nil {
 		return "", fmt.Errorf("failed to create object: %w", err)
+	}
+
+	// Add the markdown content as body blocks (separate step — details only holds metadata)
+	if err := c.addContentBlocks(ctx, objectID, change.Content); err != nil {
+		fmt.Printf("[%s] gRPC: Warning: failed to add content blocks: %v\n", time.Now().Format(time.RFC3339), err)
 	}
 
 	fmt.Printf("[%s] gRPC: Created/updated object '%s' successfully (ID: %s)\n", time.Now().Format(time.RFC3339), change.Title, objectID)
 	return objectID, nil
 }
 
-// createObject invokes ObjectCreate RPC to create a new AnyType object
-func (c *AnyTypeClient) createObject(ctx context.Context, title string, content string, spaceID string) (string, error) {
-	fmt.Printf("[%s]   → Creating object: title='%s', content_len=%d bytes\n", time.Now().Format(time.RFC3339), title, len(content))
+// createObject invokes ObjectCreate RPC to create a new AnyType object with a title
+func (c *AnyTypeClient) createObject(ctx context.Context, title string, spaceID string) (string, error) {
+	fmt.Printf("[%s]   → Creating object: title='%s'\n", time.Now().Format(time.RFC3339), title)
 
 	// Create gRPC client stub
 	client := service.NewClientCommandsClient(c.conn)
@@ -73,17 +78,12 @@ func (c *AnyTypeClient) createObject(ctx context.Context, title string, content 
 	// Add authentication to context
 	ctx = c.withAuth(ctx)
 
-	// Create details struct with title and content
+	// Details only holds metadata — body content is added separately via BlockPaste
 	details := &types.Struct{
 		Fields: map[string]*types.Value{
 			"name": {
 				Kind: &types.Value_StringValue{
 					StringValue: title,
-				},
-			},
-			"description": {
-				Kind: &types.Value_StringValue{
-					StringValue: content,
 				},
 			},
 		},
@@ -92,10 +92,10 @@ func (c *AnyTypeClient) createObject(ctx context.Context, title string, content 
 	// Create request with space ID and object details
 	// Use "ot-note" as the object type (AnyType note type)
 	req := &pb.RpcObjectCreateRequest{
-		SpaceId:              spaceID,
-		Details:              details,
-		ObjectTypeUniqueKey:  "ot-note",
-		InternalFlags:        nil,
+		SpaceId:             spaceID,
+		Details:             details,
+		ObjectTypeUniqueKey: "ot-note",
+		InternalFlags:       nil,
 	}
 
 	// Call ObjectCreate RPC
@@ -112,6 +112,37 @@ func (c *AnyTypeClient) createObject(ctx context.Context, title string, content 
 	objectID := resp.ObjectId
 	fmt.Printf("[%s]   → Created object ID: %s\n", time.Now().Format(time.RFC3339), objectID)
 	return objectID, nil
+}
+
+// addContentBlocks pastes the markdown text as body blocks into an existing AnyType object.
+// AnyType's BlockPaste with TextSlot splits the text into paragraph blocks, making the
+// content visible in the Note body (unlike the "description" details field, which is metadata).
+func (c *AnyTypeClient) addContentBlocks(ctx context.Context, objectID string, content string) error {
+	fmt.Printf("[%s]   → Adding content blocks (%d bytes)\n", time.Now().Format(time.RFC3339), len(content))
+
+	// Create gRPC client stub
+	client := service.NewClientCommandsClient(c.conn)
+
+	// Add authentication to context
+	ctx = c.withAuth(ctx)
+
+	req := &pb.RpcBlockPasteRequest{
+		ContextId:      objectID,
+		FocusedBlockId: "",
+		TextSlot:       content,
+	}
+
+	resp, err := client.BlockPaste(ctx, req)
+	if err != nil {
+		return c.handleGRPCError(err)
+	}
+
+	if resp.Error != nil && resp.Error.Code != pb.RpcBlockPasteResponseError_NULL {
+		return fmt.Errorf("BlockPaste failed: %s (%s)", resp.Error.Description, resp.Error.Code)
+	}
+
+	fmt.Printf("[%s]   → Content blocks added (%d blocks created)\n", time.Now().Format(time.RFC3339), len(resp.BlockIds))
+	return nil
 }
 
 // deleteObject invokes ObjectListDelete RPC to delete an AnyType object
