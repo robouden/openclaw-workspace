@@ -60,7 +60,7 @@ func (c *AnyTypeClient) SyncMarkdownToAnyType(ctx context.Context, change *FileC
 	}
 
 	// Add the markdown content as body blocks (separate step — details only holds metadata)
-	if err := c.addContentBlocks(ctx, objectID, change.Content); err != nil {
+	if err := c.addContentBlocks(ctx, objectID, spaceID, change.Content); err != nil {
 		fmt.Printf("[%s] gRPC: Warning: failed to add content blocks: %v\n", time.Now().Format(time.RFC3339), err)
 	}
 
@@ -114,35 +114,99 @@ func (c *AnyTypeClient) createObject(ctx context.Context, title string, spaceID 
 	return objectID, nil
 }
 
-// addContentBlocks pastes the markdown text as body blocks into an existing AnyType object.
-// AnyType's BlockPaste with TextSlot splits the text into paragraph blocks, making the
-// content visible in the Note body (unlike the "description" details field, which is metadata).
-func (c *AnyTypeClient) addContentBlocks(ctx context.Context, objectID string, content string) error {
+// addContentBlocks writes markdown text as paragraph blocks into the body of an AnyType object.
+// It uses ObjectShow to locate the correct anchor point in the block tree, then chains
+// BlockCreate calls so each line lands in the visible document body.
+func (c *AnyTypeClient) addContentBlocks(ctx context.Context, objectID string, spaceID string, content string) error {
 	fmt.Printf("[%s]   → Adding content blocks (%d bytes)\n", time.Now().Format(time.RFC3339), len(content))
 
-	// Create gRPC client stub
-	client := service.NewClientCommandsClient(c.conn)
+	// Get the current block tree to find where body content should be inserted
+	rootID, blocks, err := c.getObjectBlocks(ctx, objectID, spaceID)
+	if err != nil {
+		return fmt.Errorf("failed to read block tree: %w", err)
+	}
 
-	// Add authentication to context
+	// Build id→block map and find the last child of root (the header block) as anchor
+	blockMap := make(map[string]*model.Block, len(blocks))
+	for _, b := range blocks {
+		blockMap[b.Id] = b
+	}
+	anchorID := ""
+	if root := blockMap[rootID]; root != nil && len(root.ChildrenIds) > 0 {
+		anchorID = root.ChildrenIds[len(root.ChildrenIds)-1]
+	}
+
+	// Create one paragraph block per non-empty line, chaining after the previous
+	created := 0
+	for _, line := range strings.Split(content, "\n") {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		newID, err := c.createTextBlock(ctx, objectID, anchorID, line)
+		if err != nil {
+			return fmt.Errorf("failed to create block: %w", err)
+		}
+		anchorID = newID
+		created++
+	}
+
+	fmt.Printf("[%s]   → Content blocks added (%d blocks)\n", time.Now().Format(time.RFC3339), created)
+	return nil
+}
+
+// getObjectBlocks calls ObjectShow and returns the root block ID and full block list.
+func (c *AnyTypeClient) getObjectBlocks(ctx context.Context, objectID string, spaceID string) (string, []*model.Block, error) {
+	client := service.NewClientCommandsClient(c.conn)
 	ctx = c.withAuth(ctx)
 
-	req := &pb.RpcBlockPasteRequest{
-		ContextId:      objectID,
-		FocusedBlockId: "",
-		TextSlot:       content,
-	}
-
-	resp, err := client.BlockPaste(ctx, req)
+	resp, err := client.ObjectShow(ctx, &pb.RpcObjectShowRequest{
+		ObjectId: objectID,
+		SpaceId:  spaceID,
+	})
 	if err != nil {
-		return c.handleGRPCError(err)
+		return "", nil, c.handleGRPCError(err)
+	}
+	if resp.Error != nil && resp.Error.Code != pb.RpcObjectShowResponseError_NULL {
+		return "", nil, fmt.Errorf("ObjectShow failed: %s", resp.Error.Description)
 	}
 
-	if resp.Error != nil && resp.Error.Code != pb.RpcBlockPasteResponseError_NULL {
-		return fmt.Errorf("BlockPaste failed: %s (%s)", resp.Error.Description, resp.Error.Code)
+	view := resp.ObjectView
+	return view.RootId, view.Blocks, nil
+}
+
+// createTextBlock creates a single paragraph block after anchorID (or as first inner child if empty).
+func (c *AnyTypeClient) createTextBlock(ctx context.Context, objectID string, anchorID string, text string) (string, error) {
+	client := service.NewClientCommandsClient(c.conn)
+	ctx = c.withAuth(ctx)
+
+	position := model.Block_Inner
+	if anchorID != "" {
+		position = model.Block_Bottom
 	}
 
-	fmt.Printf("[%s]   → Content blocks added (%d blocks created)\n", time.Now().Format(time.RFC3339), len(resp.BlockIds))
-	return nil
+	req := &pb.RpcBlockCreateRequest{
+		ContextId: objectID,
+		TargetId:  anchorID,
+		Block: &model.Block{
+			Content: &model.BlockContentOfText{
+				Text: &model.BlockContentText{
+					Text:  text,
+					Style: model.BlockContentText_Paragraph,
+				},
+			},
+		},
+		Position: position,
+	}
+
+	resp, err := client.BlockCreate(ctx, req)
+	if err != nil {
+		return "", c.handleGRPCError(err)
+	}
+	if resp.Error != nil && resp.Error.Code != pb.RpcBlockCreateResponseError_NULL {
+		return "", fmt.Errorf("BlockCreate failed: %s", resp.Error.Description)
+	}
+
+	return resp.BlockId, nil
 }
 
 // deleteObject invokes ObjectListDelete RPC to delete an AnyType object
