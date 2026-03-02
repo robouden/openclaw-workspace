@@ -136,13 +136,14 @@ func (c *AnyTypeClient) addContentBlocks(ctx context.Context, objectID string, s
 		anchorID = root.ChildrenIds[len(root.ChildrenIds)-1]
 	}
 
-	// Create one paragraph block per non-empty line, chaining after the previous
+	// Create one block per non-empty line, parsing markdown into native block styles
 	created := 0
 	for _, line := range strings.Split(content, "\n") {
 		if strings.TrimSpace(line) == "" {
 			continue
 		}
-		newID, err := c.createTextBlock(ctx, objectID, anchorID, line)
+		style, text, marks := parseMarkdownLine(line)
+		newID, err := c.createTextBlock(ctx, objectID, anchorID, style, text, marks)
 		if err != nil {
 			return fmt.Errorf("failed to create block: %w", err)
 		}
@@ -174,8 +175,8 @@ func (c *AnyTypeClient) getObjectBlocks(ctx context.Context, objectID string, sp
 	return view.RootId, view.Blocks, nil
 }
 
-// createTextBlock creates a single paragraph block after anchorID (or as first inner child if empty).
-func (c *AnyTypeClient) createTextBlock(ctx context.Context, objectID string, anchorID string, text string) (string, error) {
+// createTextBlock creates a single block after anchorID with the given style, text, and inline marks.
+func (c *AnyTypeClient) createTextBlock(ctx context.Context, objectID string, anchorID string, style model.BlockContentTextStyle, text string, marks []*model.BlockContentTextMark) (string, error) {
 	client := service.NewClientCommandsClient(c.conn)
 	ctx = c.withAuth(ctx)
 
@@ -191,7 +192,8 @@ func (c *AnyTypeClient) createTextBlock(ctx context.Context, objectID string, an
 			Content: &model.BlockContentOfText{
 				Text: &model.BlockContentText{
 					Text:  text,
-					Style: model.BlockContentText_Paragraph,
+					Style: style,
+					Marks: &model.BlockContentTextMarks{Marks: marks},
 				},
 			},
 		},
@@ -207,6 +209,116 @@ func (c *AnyTypeClient) createTextBlock(ctx context.Context, objectID string, an
 	}
 
 	return resp.BlockId, nil
+}
+
+// parseMarkdownLine converts a markdown line into a block style, clean text, and inline marks.
+func parseMarkdownLine(line string) (model.BlockContentTextStyle, string, []*model.BlockContentTextMark) {
+	style := model.BlockContentText_Paragraph
+	text := line
+
+	switch {
+	case strings.HasPrefix(line, "#### "):
+		style = model.BlockContentText_Header4
+		text = line[5:]
+	case strings.HasPrefix(line, "### "):
+		style = model.BlockContentText_Header3
+		text = line[4:]
+	case strings.HasPrefix(line, "## "):
+		style = model.BlockContentText_Header2
+		text = line[3:]
+	case strings.HasPrefix(line, "# "):
+		style = model.BlockContentText_Header1
+		text = line[2:]
+	case strings.HasPrefix(line, "- ") || strings.HasPrefix(line, "* "):
+		style = model.BlockContentText_Marked
+		text = line[2:]
+	case strings.HasPrefix(line, "> "):
+		style = model.BlockContentText_Quote
+		text = line[2:]
+	default:
+		// Numbered list: "1. ", "12. ", etc.
+		i := 0
+		for i < len(line) && line[i] >= '0' && line[i] <= '9' {
+			i++
+		}
+		if i > 0 && i+2 <= len(line) && line[i] == '.' && line[i+1] == ' ' {
+			style = model.BlockContentText_Numbered
+			text = line[i+2:]
+		}
+	}
+
+	cleanText, marks := parseInlineMarks(text)
+	return style, cleanText, marks
+}
+
+// parseInlineMarks strips **bold**, *italic*, and `code` markdown syntax from text
+// and returns the clean string along with AnyType mark ranges.
+func parseInlineMarks(text string) (string, []*model.BlockContentTextMark) {
+	var marks []*model.BlockContentTextMark
+	var out strings.Builder
+	runes := []rune(text)
+	n := len(runes)
+	i := 0
+
+	for i < n {
+		// Bold: **text** or __text__
+		if i+1 < n && ((runes[i] == '*' && runes[i+1] == '*') || (runes[i] == '_' && runes[i+1] == '_')) {
+			delim := string(runes[i : i+2])
+			rest := string(runes[i+2:])
+			end := strings.Index(rest, delim)
+			if end >= 0 {
+				from := int32(len([]rune(out.String())))
+				inner := string(runes[i+2 : i+2+end])
+				out.WriteString(inner)
+				marks = append(marks, &model.BlockContentTextMark{
+					Range: &model.Range{From: from, To: from + int32(len([]rune(inner)))},
+					Type:  model.BlockContentTextMark_Bold,
+				})
+				i = i + 2 + end + 2
+				continue
+			}
+		}
+
+		// Italic: *text* or _text_ (single, not preceded by same char)
+		if (runes[i] == '*' || runes[i] == '_') && (i+1 < n && runes[i+1] != runes[i]) {
+			delim := string(runes[i])
+			rest := string(runes[i+1:])
+			end := strings.Index(rest, delim)
+			if end >= 0 {
+				from := int32(len([]rune(out.String())))
+				inner := string(runes[i+1 : i+1+end])
+				out.WriteString(inner)
+				marks = append(marks, &model.BlockContentTextMark{
+					Range: &model.Range{From: from, To: from + int32(len([]rune(inner)))},
+					Type:  model.BlockContentTextMark_Italic,
+				})
+				i = i + 1 + end + 1
+				continue
+			}
+		}
+
+		// Inline code: `text`
+		if runes[i] == '`' {
+			rest := string(runes[i+1:])
+			end := strings.Index(rest, "`")
+			if end >= 0 {
+				from := int32(len([]rune(out.String())))
+				inner := string(runes[i+1 : i+1+end])
+				out.WriteString(inner)
+				marks = append(marks, &model.BlockContentTextMark{
+					Range: &model.Range{From: from, To: from + int32(len([]rune(inner)))},
+					Type:  model.BlockContentTextMark_Keyboard,
+				})
+				i = i + 1 + end + 1
+				continue
+			}
+		}
+
+		out.WriteRune(runes[i])
+		i++
+	}
+
+	return out.String(), marks
 }
 
 // deleteObject invokes ObjectListDelete RPC to delete an AnyType object
