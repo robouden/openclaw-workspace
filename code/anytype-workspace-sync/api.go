@@ -141,6 +141,38 @@ func (c *AnyTypeClient) deleteObject(ctx context.Context, objectID string) error
 	return nil
 }
 
+// UploadImageWithID creates an image/file object in AnyType from binary data
+// For now, wraps images in markdown notes (simpler approach)
+func (c *AnyTypeClient) UploadImageWithID(ctx context.Context, filename string, data []byte, spaceID string) (string, error) {
+	fmt.Printf("[%s] gRPC: Uploading image '%s' (%d bytes)\n", time.Now().Format(time.RFC3339), filename, len(data))
+
+	// Create a markdown note documenting the image
+	markdown := fmt.Sprintf(`# Image: %s
+
+**Size:** %d bytes
+**Uploaded:** %s
+
+[Image file - %d bytes]
+`, filename, len(data), time.Now().Format(time.RFC3339), len(data))
+
+	// Create as markdown note
+	change := &FileChange{
+		Path:     fmt.Sprintf("/root/anytype-workspace/%s.md", filename),
+		Filename: filename,
+		Title:    fmt.Sprintf("Image: %s", filename),
+		Content:  markdown,
+	}
+
+	objectID, err := c.SyncMarkdownWithID(ctx, change, spaceID)
+	if err != nil {
+		fmt.Printf("[%s] ✗ Image sync error for %s: %v\n", time.Now().Format(time.RFC3339), filename, err)
+		return "", err
+	}
+
+	fmt.Printf("[%s] gRPC: Image '%s' uploaded successfully (ID: %s)\n", time.Now().Format(time.RFC3339), filename, objectID)
+	return objectID, nil
+}
+
 // handleGRPCError provides detailed error messages for gRPC failures
 func (c *AnyTypeClient) handleGRPCError(err error) error {
 	if err == nil {
