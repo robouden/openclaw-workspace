@@ -92,6 +92,48 @@ func SyncFile(ctx context.Context, client *AnyTypeClient, filepath string) (stri
 	return objectID, nil
 }
 
+// SyncImage processes an image file for sync
+func SyncImage(ctx context.Context, client *AnyTypeClient, filepath string) (string, error) {
+	// Read the image file
+	data, err := os.ReadFile(filepath)
+	if err != nil {
+		fmt.Printf("[%s] ✗ Error reading image %s: %v\n", time.Now().Format(time.RFC3339), filepath, err)
+		return "", err
+	}
+
+	// Extract filename without extension
+	filename := filepath[strings.LastIndex(filepath, "/")+1:]
+	name := filename
+	if idx := strings.LastIndex(name, "."); idx != -1 {
+		name = name[:idx]
+	}
+
+	fmt.Printf("[%s] Syncing image %s... (%d bytes)\n", time.Now().Format(time.RFC3339), name, len(data))
+
+	// Sync to AnyType via gRPC (if connected)
+	if client == nil {
+		fmt.Printf("[%s] ⚠ %s queued (gRPC client not connected)\n", time.Now().Format(time.RFC3339), name)
+		return "", fmt.Errorf("client not connected")
+	}
+
+	// Upload image as a file object
+	objectID, err := client.UploadImageWithID(ctx, name, data, spaceID)
+	if err != nil {
+		fmt.Printf("[%s] ✗ Image sync error for %s: %v\n", time.Now().Format(time.RFC3339), name, err)
+		return "", err
+	}
+
+	// Store the object ID mapping
+	if objectMap != nil {
+		if err := objectMap.Set(name, objectID); err != nil {
+			fmt.Printf("[%s] ⚠ Failed to save object mapping: %v\n", time.Now().Format(time.RFC3339), err)
+		}
+	}
+
+	fmt.Printf("[%s] ✓ %s synced to AnyType (ID: %s)\n", time.Now().Format(time.RFC3339), name, objectID)
+	return objectID, nil
+}
+
 // DeleteFile processes a markdown file deletion
 func DeleteFile(ctx context.Context, client *AnyTypeClient, filepath string) {
 	filename := strings.TrimSuffix(filepath[strings.LastIndex(filepath, "/")+1:], ".md")
@@ -156,8 +198,16 @@ func WatchDirectory(ctx context.Context, dir string, client *AnyTypeClient, watc
 				return nil
 			}
 
-			// Only process .md files
-			if !strings.HasSuffix(event.Name, ".md") {
+	// Only process .md, image, or PDF files
+			isMarkdown := strings.HasSuffix(event.Name, ".md")
+			isImage := strings.HasSuffix(event.Name, ".jpg") || 
+					strings.HasSuffix(event.Name, ".jpeg") ||
+					strings.HasSuffix(event.Name, ".png") || 
+					strings.HasSuffix(event.Name, ".gif") ||
+					strings.HasSuffix(event.Name, ".webp")
+			isPDF := strings.HasSuffix(event.Name, ".pdf")
+			
+			if !isMarkdown && !isImage && !isPDF {
 				continue
 			}
 
@@ -170,17 +220,25 @@ func WatchDirectory(ctx context.Context, dir string, client *AnyTypeClient, watc
 			}
 			fileTimestamps[event.Name] = now
 
-			// Handle different event types
+// Handle different event types
 			if event.Op&fsnotify.Remove == fsnotify.Remove {
 				// File was deleted
+				filename := event.Name[strings.LastIndex(event.Name, "/")+1:]
+				if idx := strings.LastIndex(filename, "."); idx != -1 {
+					filename = filename[:idx]
+				}
 				DeleteFile(ctx, client, event.Name)
 			} else {
 				// Wait for file to stabilize
 				time.Sleep(debounceTime)
 
-				// Check if file still exists (for create/write events)
+// Check if file still exists (for create/write events)
 				if _, err := os.Stat(event.Name); err == nil {
-					SyncFile(ctx, client, event.Name)
+					if isMarkdown {
+						SyncFile(ctx, client, event.Name)
+					} else if isImage || isPDF {
+						SyncImage(ctx, client, event.Name)
+					}
 				}
 			}
 
@@ -202,9 +260,20 @@ func InitialSync(ctx context.Context, dir string, client *AnyTypeClient) error {
 		return err
 	}
 
-	for _, file := range files {
-		if !file.IsDir() && strings.HasSuffix(file.Name(), ".md") {
-			SyncFile(ctx, client, filepath.Join(dir, file.Name()))
+for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+		
+		filename := file.Name()
+		fullPath := filepath.Join(dir, filename)
+		
+		if strings.HasSuffix(filename, ".md") {
+			SyncFile(ctx, client, fullPath)
+		} else if strings.HasSuffix(filename, ".jpg") || strings.HasSuffix(filename, ".jpeg") ||
+			strings.HasSuffix(filename, ".png") || strings.HasSuffix(filename, ".gif") ||
+			strings.HasSuffix(filename, ".webp") || strings.HasSuffix(filename, ".pdf") {
+			SyncImage(ctx, client, fullPath)
 		}
 	}
 
