@@ -52,7 +52,6 @@ flowchart TD
     Ignore --> End([End])
     RateLimitError --> End
 
-curl -fsSL https://entire.io/install.sh | bash
 ```
 
 ## File Watcher Flow
@@ -248,13 +247,13 @@ sequenceDiagram
 
 ## Supported File Types Summary
 
-| Category | Extensions | Object Type | RPC Method |
-|----------|-----------|-------------|------------|
-| Markdown | .md | Note | ObjectCreate |
-| Images | .jpg, .jpeg, .png, .gif, .webp, .bmp, .svg | Image | FileUpload |
-| Documents | .pdf | PDF | FileUpload |
-| Videos | .mp4, .mov, .avi, .mkv, .webm | Video | FileUpload |
-| Audio | .mp3, .wav, .ogg, .m4a, .flac | Audio | FileUpload |
+| Category  | Extensions                                 | Object Type | RPC Method   |
+| --------- | ------------------------------------------ | ----------- | ------------ |
+| Markdown  | .md                                        | Note        | ObjectCreate |
+| Images    | .jpg, .jpeg, .png, .gif, .webp, .bmp, .svg | Image       | FileUpload   |
+| Documents | .pdf                                       | PDF         | FileUpload   |
+| Videos    | .mp4, .mov, .avi, .mkv, .webm              | Video       | FileUpload   |
+| Audio     | .mp3, .wav, .ogg, .m4a, .flac              | Audio       | FileUpload   |
 
 ## Version History
 
