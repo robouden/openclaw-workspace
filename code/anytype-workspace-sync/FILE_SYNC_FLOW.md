@@ -52,7 +52,7 @@ flowchart TD
     Ignore --> End([End])
     RateLimitError --> End
 
-
+curl -fsSL https://entire.io/install.sh | bash
 ```
 
 ## File Watcher Flow
