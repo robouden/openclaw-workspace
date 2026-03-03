@@ -1,0 +1,9 @@
+Can you update the readme.md for much more details about the setup. Also with a nice graph/flowchart of the interaction with AnyType/OpenClaw?
+
+---
+
+[Request interrupted by user for tool use]
+
+---
+
+I like you to focus the content of the readme.md on the intergation of the anytype-syn how that works.
