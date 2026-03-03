@@ -1,0 +1,13 @@
+id: 6996fb7874db9ded5e9daba0
+networkId: N5Xkmn5vF7cwthDjh6avXem2q1Q56P5xkji19SDU8PQ9m6uD
+nodes:
+  - peerId: 12D3KooWCDxPTGbLoaBJewKcMRpppKzwG36Zp57evuUBGkcVURhQ
+    addresses:
+      - quic://65.108.24.131:33020
+      - 65.108.24.131:33010
+    types:
+      - coordinator
+      - consensus
+      - tree
+      - file
+creationTime: 2026-03-01T02:19:56.914785492Z
