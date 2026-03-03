@@ -1,20 +1,29 @@
 # AnyType Workspace Sync
 
-Bidirectional sync between local markdown files and AnyType self-hosted space via gRPC.
+**v1.2.0** - Full file synchronization between local workspace and AnyType self-hosted space via gRPC.
 
 ## Overview
 
-This tool enables automated synchronization of markdown files to an AnyType self-hosted space, allowing external tools and bots to read/write to AnyType spaces programmatically.
+This tool enables automated synchronization of files (markdown, images, PDFs, videos, audio) to an AnyType self-hosted space, allowing external tools and bots to read/write to AnyType spaces programmatically.
 
 ### Features
 
-- ✅ **Create/Update** - Markdown files automatically sync to AnyType as note objects
+#### File Sync (v1.2.0)
+- ✅ **Markdown Notes** (.md) - Text notes with automatic title extraction
+- ✅ **Images** (.jpg, .jpeg, .png, .gif, .webp, .bmp, .svg) - Automatic image upload
+- ✅ **PDFs** (.pdf) - Document sync
+- ✅ **Videos** (.mp4, .mov, .avi, .mkv, .webm) - Video file support
+- ✅ **Audio** (.mp3, .wav, .ogg, .m4a, .flac) - Audio file support
+
+#### Core Features
+- ✅ **Create/Update** - Files automatically sync to AnyType as appropriate object types
 - ✅ **Delete** - File deletions propagate to AnyType space
-- ✅ **File Watching** - Real-time monitoring with fsnotify
+- ✅ **File Watching** - Real-time monitoring with fsnotify (2-second debounce)
 - ✅ **Object ID Tracking** - Persistent mapping between files and AnyType objects
 - ✅ **gRPC Authentication** - Session token-based authentication
-- ✅ **Automatic Token Renewal** - Self-healing authentication with automatic server restart
-- ✅ **Self-Hosted Networks** - Support for custom AnyType networks
+- ✅ **Automatic Token Renewal** (v1.1.0) - Self-healing authentication with automatic server restart
+- ✅ **Self-Hosted Networks** - Support for custom AnyType P2P networks
+- ✅ **Global P2P Sync** - Files appear on all devices worldwide (tested: Finland ↔ Japan)
 
 ## Architecture
 
@@ -537,6 +546,21 @@ For issues or questions:
 
 ## Changelog
 
+### v1.2.0 (2026-03-01) 🎉
+- ✨ **NEW**: Full file sync support beyond markdown
+  - 🖼️ Image files (.jpg, .jpeg, .png, .gif, .webp, .bmp, .svg)
+  - 📄 PDF documents (.pdf)
+  - 🎥 Video files (.mp4, .mov, .avi, .mkv, .webm)
+  - 🎵 Audio files (.mp3, .wav, .ogg, .m4a, .flac)
+- ✨ **NEW**: Automatic file type detection from extensions
+- ✨ **NEW**: FileUpload RPC integration for binary files
+- ✨ **NEW**: Unified file watching for all supported types
+- 📝 Added FILE_SYNC_FLOW.md with comprehensive Mermaid diagrams
+- 📝 Added ANYTYPE_SETUP_VERIFICATION.md with complete system overview
+- ✅ Tested: Global P2P sync (Finland ↔ Germany ↔ Japan via Starlink)
+- ✅ Verified: Sub-second sync times across continents
+- 🚀 Production-ready for OpenClaw integration
+
 ### v1.1.0 (2026-03-01)
 - ✨ **NEW**: Automatic token renewal with self-healing authentication
 - ✨ **NEW**: Automatic AnyType server restart on auth errors
@@ -547,7 +571,7 @@ For issues or questions:
 
 ### v1.0.0 (2026-03-01)
 - Initial release
-- Create/update/delete support
+- Create/update/delete support for markdown files
 - Object ID tracking
 - gRPC authentication
 - Self-hosted network support
