@@ -57,114 +57,114 @@
 ## Summary by Category
 
 ### 🎯 **Features** (3 commits)
-1. **Merge safecast-map-MCP into monorepo** (`048b459c`)
-   - Integration of MCP server into main codebase
-   
-2. **Add safecast-web-chat and safecast-mcp projects** (`ff2496be`)
-   - New projects added with README updates
-   - Architecture diagrams included
-   - PostgreSQL security hardening in deployment docs
+- **Merge safecast-map-MCP into monorepo** (`048b459c`)
+  - Integration of MCP server into main codebase
+  
+- **Add safecast-web-chat and safecast-mcp projects** (`ff2496be`)
+  - New projects added with README updates
+  - Architecture diagrams included
+  - PostgreSQL security hardening in deployment docs
 
-3. **Reimplement auth route** (`006d6be8`)
-   - Route deleted by grepfile
-   - Re-added with authentication
+- **Reimplement auth route** (`006d6be8`)
+  - Route deleted by grepfile
+  - Re-added with authentication
 
 ---
 
 ### 🔧 **Fixes** (8 commits)
-1. **Syntax errors** (`20895f8f`)
-   - handlers_trackinfo.go
-   - handlers_markers.go
+- **Syntax errors** (`20895f8f`)
+  - handlers_trackinfo.go
+  - handlers_markers.go
 
-2. **Duplicate header-setting** (`cfea9d0e`, `d06a5a50`)
-   - Removed redundant code
+- **Duplicate header-setting** (`cfea9d0e`, `d06a5a50`)
+  - Removed redundant code
 
-3. **500 response on database error** (`2c08d030`)
-   - Better error handling
+- **500 response on database error** (`2c08d030`)
+  - Better error handling
 
-4. **HTTPS requirement for redirect** (`2838e1c8`)
-   - Security enforcement
+- **HTTPS requirement for redirect** (`2838e1c8`)
+  - Security enforcement
 
-5. **server.go syntax fixes** (`269008ad`)
-   - Added gzipWrap
-   - Removed orphaned defer
+- **server.go syntax fixes** (`269008ad`)
+  - Added gzipWrap
+  - Removed orphaned defer
 
 ---
 
 ### 📝 **Documentation** (5 commits)
-1. **Spectral data flow diagram** (`66c6e67a`)
-   - New docs/spectral-data-flow.mmd
-   - Pipeline: upload → format detection → parsers (n42/spe/rctrk/rcxml) → DB → API → browser
+- **Spectral data flow diagram** (`66c6e67a`)
+  - New docs/spectral-data-flow.mmd
+  - Pipeline: upload → format detection → parsers (n42/spe/rctrk/rcxml) → DB → API → browser
 
-2. **Architecture diagrams for monorepo** (`f7d8e436`, `66c6e67a`)
-   - Updated README
-   - Monorepo CI/CD workflow visualization
-   - Service labels showing cmd/ source paths
+- **Architecture diagrams for monorepo** (`f7d8e436`, `66c6e67a`)
+  - Updated README
+  - Monorepo CI/CD workflow visualization
+  - Service labels showing cmd/ source paths
 
-3. **CloudFront MCP setup docs** (`a0969630`)
-   - Deployment documentation updates
+- **CloudFront MCP setup docs** (`a0969630`)
+  - Deployment documentation updates
 
-4. **Code documentation** (`7808e451`, `f838920d`, `a8369c71`)
-   - pkg/web/server.go
-   - pkg/web/handlers_markers.go
-   - pkg/web/handlers_trackinfo.go
+- **Code documentation** (`7808e451`, `f838920d`, `a8369c71`)
+  - pkg/web/server.go
+  - pkg/web/handlers_markers.go
+  - pkg/web/handlers_trackinfo.go
 
 ---
 
 ### ✅ **Testing** (5 commits)
-1. **Unit tests** (`fd85204d`)
-   - pkg/api/handlers_test.go: overview, latest, tracks, countries, shorten, track data
-   - pkg/auth/handlers_test.go: register, login, logout, forgot-password, profile, change-password
-   - test/smoke_test.sh: curl-based smoke tests
-   - docs/TESTING.md: testing guide
+- **Unit tests** (`fd85204d`)
+  - pkg/api/handlers_test.go: overview, latest, tracks, countries, shorten, track data
+  - pkg/auth/handlers_test.go: register, login, logout, forgot-password, profile, change-password
+  - test/smoke_test.sh: curl-based smoke tests
+  - docs/TESTING.md: testing guide
 
-2. **Integration testing** (`59330d93`)
-   - Added integration testing with temporary test databases
+- **Integration testing** (`59330d93`)
+  - Added integration testing with temporary test databases
 
-3. **CI/CD tests** (`02f9a3c7`)
-   - New tests added to CI/CD pipeline
+- **CI/CD tests** (`02f9a3c7`)
+  - New tests added to CI/CD pipeline
 
-4. **Auth route tests** (`9246f853`)
-   - Updated tests to handle auth route
+- **Auth route tests** (`9246f853`)
+  - Updated tests to handle auth route
 
-5. **Test documentation** (`51b86313`)
-   - Expanded docstrings
+- **Test documentation** (`51b86313`)
+  - Expanded docstrings
 
 ---
 
 ### 🏗️ **Refactoring & Maintenance** (4+ commits)
-1. **Handler refactoring** (`05a3700b`)
-   - Moved API handlers into pkg/web
-   - Following Go standards
+- **Handler refactoring** (`05a3700b`)
+  - Moved API handlers into pkg/web
+  - Following Go standards
 
-2. **Code reorganization** (`d0482c33`)
-   - Moved API handlers out of main
+- **Code reorganization** (`d0482c33`)
+  - Moved API handlers out of main
 
-3. **PR template** (`312276ab`, `2bb0a94e`)
-   - Relocated to .github directory
+- **PR template** (`312276ab`, `2bb0a94e`)
+  - Relocated to .github directory
 
-4. **Code suggestions** (`06a6c11f`)
-   - Applied suggestions from greptile-apps[bot]
+- **Code suggestions** (`06a6c11f`)
+  - Applied suggestions from greptile-apps[bot]
 
-5. **Style improvements** (`f9933c61`)
-   - Styling updates
+- **Style improvements** (`f9933c61`)
+  - Styling updates
 
 ---
 
 ## Key Observations
 
 ### ✅ **Positive**
-- **High activity:** 25+ commits in a single day shows active development
-- **Good collaboration:** Two developers (robouden, Merrick Richters) working together
-- **Testing focus:** Major test additions (unit, integration, smoke tests, CI/CD)
-- **Documentation:** Comprehensive docs with diagrams (architecture, spectral flow)
-- **Security:** PostgreSQL hardening, HTTPS requirements, authentication improvements
-- **Code quality:** Refactoring to Go standards, handler reorganization
+- High activity: 25+ commits in a single day shows active development
+- Good collaboration: Two developers (robouden, Merrick Richters) working together
+- Testing focus: Major test additions (unit, integration, smoke tests, CI/CD)
+- Documentation: Comprehensive docs with diagrams (architecture, spectral flow)
+- Security: PostgreSQL hardening, HTTPS requirements, authentication improvements
+- Code quality: Refactoring to Go standards, handler reorganization
 
 ### ⚠️ **Notes**
-- **Active refactoring:** Multiple syntax fixes suggest ongoing API restructuring
-- **MCP integration:** safecast-map-MCP successfully merged into monorepo
-- **Web chat:** New safecast-web-chat project added alongside MCP
+- Active refactoring: Multiple syntax fixes suggest ongoing API restructuring
+- MCP integration: safecast-map-MCP successfully merged into monorepo
+- Web chat: New safecast-web-chat project added alongside MCP
 
 ---
 
@@ -185,10 +185,10 @@
 
 ## Next Steps (Recommendations)
 
-1. ✅ All tests passing in CI/CD?
-2. ✅ Smoke test script validated?
-3. ✅ PostgreSQL security settings deployed?
-4. 🔄 MCP server endpoints documented and tested?
+- ✅ All tests passing in CI/CD?
+- ✅ Smoke test script validated?
+- ✅ PostgreSQL security settings deployed?
+- 🔄 MCP server endpoints documented and tested?
 
 ---
 
