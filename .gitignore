@@ -7,6 +7,13 @@ Thumbs.db
 .env*
 secrets/
 credentials/
+openclaw.json          # Contains auth tokens
+auth-profiles.json     # Contains API keys
+.bashrc*               # Shell config with exported keys
+.bash_profile*         # Shell config with exported keys
+*.key
+*.token
+*.secret
 
 # Node
 node_modules/
