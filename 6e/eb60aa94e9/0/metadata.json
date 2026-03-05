@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.4.8",
+  "checkpoint_id": "6eeb60aa94e9",
+  "session_id": "18e6ff61-9982-416d-9a28-d6a98c7f1cee",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-05T06:31:40.970394054Z",
+  "branch": "master",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "code/anytype-workspace-sync/ARCHITECTURE.md",
+    "code/anytype-workspace-sync/README.md",
+    "code/anytype-workspace-sync/SYSTEM_FLOW.md",
+    "code/anytype-workspace-sync/TROUBLESHOOTING.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "7ef52ed8522b",
+  "token_usage": {
+    "input_tokens": 37,
+    "cache_creation_tokens": 134499,
+    "cache_read_tokens": 1995038,
+    "output_tokens": 8838,
+    "api_call_count": 31
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-05T06:31:40.628337383Z",
+    "agent_lines": 32,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 32,
+    "agent_percentage": 100
+  }
+}
