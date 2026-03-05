@@ -58,7 +58,7 @@ graph TB
     Notes -->|6. Read data| OCLogic
 
     %% OpenClaw to Workspace
-    OC -->|7. Write .md files| WS
+    OC -->|7. Write files (.md/.png/.pdf/etc.)| WS
     OCLogic -->|8. Create note1.md| MD1
     OCLogic -->|9. Create note2.md| MD2
     OCLogic -->|10. Create task.md| MD3
@@ -267,9 +267,11 @@ sequenceDiagram
         GRPC-->>WS: 11. Success + response
     else Token Expired
         GRPC-->>WS: 12. Error: not authenticated
-        WS->>SRV: 13. Detect auth error
-        WS->>SRV: 14. Trigger token refresh
-        Note over WS,SRV: Future: automatic renewal
+        WS->>SRV: 13. pkill anytype serve (rate-limited: 30s cooldown)
+        WS->>SRV: 14. Start new anytype serve -q
+        WS->>CFG: 15. Read fresh JWT token
+        WS->>GRPC: 16. Retry original request with new token
+        GRPC-->>WS: 17. Success
     end
 ```
 
@@ -299,7 +301,8 @@ sequenceDiagram
 ### 5. Workspace Sync → AnyType Server (gRPC)
 - Connects to `127.0.0.1:31010`
 - Uses session token from `~/.anytype/config.json`
-- RPC methods: `ObjectCreate`, `ObjectListDelete`, `WorkspaceOpen`
+- RPC methods: `ObjectCreate`, `ObjectListDelete`, `WorkspaceOpen`, `FileUpload`
+- Automatic token renewal on auth failures (kills server, restarts, reloads token, retries)
 
 ### 6. AnyType Server → Space (Sync)
 - `anytype serve` maintains connection to self-hosted network
@@ -371,10 +374,10 @@ graph LR
    - File System → MongoDB
    - MongoDB → OpenClaw notification
 
-2. **Automatic Token Refresh**
-   - Detect auth failures
-   - Restart AnyType server
-   - Reload token automatically
+2. ~~**Automatic Token Refresh**~~ ✅ **IMPLEMENTED** (v1.1.0)
+   - Detects auth failures
+   - Restarts AnyType server automatically
+   - Reloads token automatically, retries the failed operation
 
 3. **Conflict Resolution**
    - Handle simultaneous edits
