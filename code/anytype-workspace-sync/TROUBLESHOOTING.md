@@ -48,7 +48,7 @@ systemctl restart anytype-workspace-sync
 journalctl -u anytype-workspace-sync -n 20
 ```
 
-**Prevention**: Set up automated restart (future enhancement)
+**Note**: Automatic token renewal is built-in (v1.1.0). The service will self-heal on auth errors. Manual restart is only needed if auto-renewal itself fails.
 
 ---
 
@@ -261,8 +261,8 @@ systemctl start anytype-workspace-sync
 
 **Diagnosis**:
 ```bash
-# List files
-ls /root/anytype-workspace/*.md | sed 's/.*\///' | sed 's/\.md$//' | sort > /tmp/files.txt
+# List files (all supported types)
+ls /root/anytype-workspace/ | grep -E '\.(md|jpg|jpeg|png|gif|webp|bmp|svg|pdf|mp4|mov|avi|mkv|webm|mp3|wav|ogg|m4a|flac)$' | sed 's/\.[^.]*$//' | sort > /tmp/files.txt
 
 # List map entries
 jq -r 'keys[]' /root/.anytype-workspace-objectmap.json | sort > /tmp/map.txt
@@ -427,7 +427,7 @@ echo -e "\n=== Recent Logs ==="
 journalctl -u anytype-workspace-sync -n 20 --no-pager
 
 echo -e "\n=== File Count ==="
-ls -1 /root/anytype-workspace/*.md 2>/dev/null | wc -l
+ls -1 /root/anytype-workspace/ 2>/dev/null | grep -cE '\.(md|jpg|jpeg|png|gif|webp|bmp|svg|pdf|mp4|mov|avi|mkv|webm|mp3|wav|ogg|m4a|flac)$' || echo "0"
 
 echo -e "\n=== Object Map Size ==="
 jq 'length' /root/.anytype-workspace-objectmap.json 2>/dev/null || echo "Object map not found"

@@ -17,10 +17,10 @@ The system enables programmatic access to self-hosted AnyType spaces by bridging
 ┌──────────────────────────────────────────────────────────────┐
 │              Filesystem Layer                                 │
 │                                                                │
-│  /root/anytype-workspace/*.md                                │
+│  /root/anytype-workspace/  (.md  .png  .pdf  .mp4  .mp3)     │
 │  - test-note.md                                               │
-│  - project-doc.md                                             │
-│  - meeting-notes.md                                           │
+│  - photo.png                                                  │
+│  - document.pdf                                               │
 └─────────────────────┬────────────────────────────────────────┘
                       │
                       │ fsnotify events
@@ -89,7 +89,7 @@ for {
 - Recursive directory watching
 - Debouncing (2 second delay to avoid duplicate events)
 - File timestamp tracking
-- `.md` file filtering
+- Supported file type filtering (`.md`, `.jpg`, `.png`, `.gif`, `.webp`, `.bmp`, `.svg`, `.pdf`, `.mp4`, `.mov`, `.avi`, `.mkv`, `.webm`, `.mp3`, `.wav`, `.ogg`, `.m4a`, `.flac`)
 
 **Events Handled**:
 - `Create` - New file created → Sync to AnyType
@@ -331,10 +331,10 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzZWVkIjoiSGNHc3l3T0gifQ.xWn_B2psFw1...
 - ✅ Remote access (localhost binding)
 - ✅ Unauthorized local processes (session token required)
 - ✅ Token theft (short-lived)
+- ✅ Session token expiry (automatic renewal via server restart)
 
 **Not Protected Against**:
 - ❌ Root-level compromise
-- ❌ Session token expiry (requires restart)
 - ❌ Account key theft
 
 ## Performance Characteristics
@@ -372,19 +372,16 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzZWVkIjoiSGNHc3l3T0gifQ.xWn_B2psFw1...
 
 ### Retry Strategy
 
-**No Retries**: Currently, failed operations are logged but not retried.
+**Authentication Retries**: When an authentication error is detected, the service automatically refreshes the session token and retries the failed operation once (rate-limited to once per 30 seconds).
 
-**Rationale**:
-- File changes can be re-triggered by modifying the file again
-- Automatic retry could mask authentication issues
-- Systemd handles service-level restarts
+**Other Errors**: Non-auth failures are logged but not retried. File changes can be re-triggered by modifying the file again. Systemd handles service-level restarts.
 
 ### Error Categories
 
 1. **Authentication Errors** (`Unauthenticated`)
-   - Action: Log error
-   - Recovery: Restart services
-   - Prevention: Implement token refresh
+   - Action: Automatic token renewal (kill server, restart, reload token, retry)
+   - Recovery: Automatic — manual restart only needed if auto-renewal fails
+   - Rate limit: 30-second cooldown between renewal attempts
 
 2. **Network Errors** (`Unavailable`)
    - Action: Log error
@@ -476,15 +473,8 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzZWVkIjoiSGNHc3l3T0gifQ.xWn_B2psFw1...
 
 ## Future Enhancements
 
-### 1. Token Refresh
-**Problem**: Session tokens expire
-**Solution**: Implement automatic refresh
-```go
-if resp.Error == "Unauthenticated" {
-    token := refreshToken(accountKey)
-    retry(request, token)
-}
-```
+### 1. ~~Token Refresh~~ ✅ IMPLEMENTED (v1.1.0)
+Automatic token renewal is fully implemented in `client.go`. On auth error the service kills the AnyType server, restarts it, reads the new JWT, and retries the original operation.
 
 ### 2. Bidirectional Sync
 **Problem**: Changes in AnyType don't reflect in files
@@ -647,6 +637,6 @@ tar -czf anytype-backup-$(date +%Y%m%d).tar.gz \
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: 2026-03-01
+**Document Version**: 1.2.0
+**Last Updated**: 2026-03-05
 **Author**: Architecture Team

@@ -511,16 +511,16 @@ Shows:
 
 1. ~~**Session Token Expiry**~~ - ✅ **FIXED**: Automatic token renewal now handles expired tokens
 2. **One-Way Sync** - Changes in AnyType don't sync back to files
-3. **Markdown Only** - Only `.md` files are synced
+3. ~~**Markdown Only**~~ - ✅ **FIXED** (v1.2.0): Images, PDFs, videos, and audio are now synced in addition to markdown
 4. **No Conflict Resolution** - Last write wins
 5. **Network Required** - Must maintain connection to AnyType server
 
 ## Future Improvements
 
 - [x] ~~Automatic token refresh~~ - ✅ **IMPLEMENTED** (v1.1.0)
+- [x] ~~Support for other file types~~ - ✅ **IMPLEMENTED** (v1.2.0): images, PDFs, videos, audio
 - [ ] Bidirectional sync (AnyType → files)
 - [ ] Conflict detection and resolution
-- [ ] Support for other file types
 - [ ] Webhook notifications
 - [ ] Health check endpoint
 - [ ] Metrics/Prometheus integration
