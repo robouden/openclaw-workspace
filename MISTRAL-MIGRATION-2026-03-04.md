@@ -39,7 +39,7 @@
   "mistral-portal:default": {
     "provider": "mistral-portal",
     "mode": "api_key",
-    "apiKey": "Wo4TbI2qhFoxFEDdKTc6qNsVVfv7jx22"
+    "apiKey": ""
   }
 }
 ```
