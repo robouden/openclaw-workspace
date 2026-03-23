@@ -20,6 +20,39 @@
 - Everything lives here: config, memory, daily logs
 - Commit after every session
 
+## VPS Mail Server (yr-design.biz) — 80.208.225.44
+- **Status (2026-03-23):** ✅ Fully operational — spinfish.tv, magneticarts.com, legalvideoasia.com all delivering
+- **Mail stack:** Postfix + Dovecot + Virtualmin
+- **SSH:** `ssh root@80.208.225.44`
+
+### Postfix Virtual Mailbox Config (critical lessons learned)
+- `virtual_mailbox_base = /` (must be set — empty string causes fatal error)
+- `virtual_mailbox_domains = hash:/etc/postfix/virtual_mailbox_domains` — domains that have local mailbox delivery
+- `virtual_mailbox_maps = hash:/etc/postfix/virtual_mailbox` — full absolute paths required, e.g. `/home/spinfish/homes/rob/Maildir/`
+- `virtual_uid_maps = hash:/etc/postfix/virtual_uid` — must match actual system UIDs
+- `virtual_gid_maps = hash:/etc/postfix/virtual_gid` — must match actual system GIDs
+- `virtual_alias_maps = hash:/etc/postfix/virtual` — only for generic aliases (postmaster, abuse, etc.); mailbox users must NOT be here
+
+### Domain Config Summary
+| Domain | Mailbox Base | Owner UID | Owner GID |
+|--------|-------------|-----------|-----------|
+| spinfish.tv | /home/spinfish/homes/{user}/Maildir/ | 1079 (spinfish) | 1031 |
+| magneticarts.com | /home/magneticarts/homes/{user}/Maildir/ | per-user UIDs | 1030 |
+| legalvideoasia.com | /home/legalvideoasia/homes/{user}/Maildir/ | per-user UIDs | 1020 |
+
+### Key rules (don't break these)
+1. **Never put mailbox users in virtual_alias_maps** — causes "User unknown in virtual alias table" or delivery loops
+2. **Never put bare domain entries (e.g. `spinfish.tv → spinfish.tv`) in virtual** — causes "mail loops back to myself"
+3. **virtual_mailbox_base must be `/` when using absolute paths** — empty string crashes Postfix
+4. **Maildir ownership must match virtual_uid_maps** — wrong UID = "Permission denied"
+5. **Each mailbox user has their own UID** (Virtualmin approach) — don't assume same UID for all users in a domain
+
+### Virtualmin gotchas
+- Virtualmin regenerates `/etc/postfix/virtual` on save — can overwrite manual fixes
+- Fix: set `chattr +i /etc/postfix/virtual` before Virtualmin edits, remove with `chattr -i` after
+- Virtualmin writes self-referencing entries like `rob@spinfish.tv → rob@spinfish.tv` — these must be removed
+- `virtual_mailbox_domains` hash file needs format: `domain.com OK` (not just domain name)
+
 ## VPS (simplemap.safecast.org)
 - IP: 65.108.24.131, Ubuntu 24.04, Hetzner — production Safecast server, be careful
 - OpenClaw installed, gateway running as system service (port 18789, loopback)
