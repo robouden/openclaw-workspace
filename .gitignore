@@ -26,6 +26,10 @@ node_modules/
 # Compiled Go binaries
 code/anytype-workspace-sync/anytype-workspace-sync
 code/anytype-workspace-sync/anytype-workspace-sync-bin
+code/anytype-local/anytype-local-sync
 *.exe
 *.test
 *.out
+
+# IDE / editor tooling
+.opencode/
