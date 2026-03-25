@@ -1,0 +1,260 @@
+Can you help me with implementing this? https://claude.ai/share/5d40167e-012a-4ce4-b18c-ce76d464bc0a
+
+---
+
+In AnyType GUI how to Invite by account ID?
+4:32 PM
+Searched the web
+
+Based on the official Anytype documentation, "Invite by Account ID" is not a feature in the current Anytype GUI. The standard collaboration flow in Anytype works exclusively through invite links, not direct account ID lookup.
+
+Here's how inviting actually works in the current GUI:
+
+To invite someone to a Space or Channel:
+
+    Open your Space or Channel Settings (click the Settings button in the top-left corner of the sidebar)
+    Go to the Members submenu
+    Click "Invite link"
+    Choose the type of invite: Editor, Viewer, or Request Access. The first two let users join directly with that access level; the third requires you to approve the request and assign a role manually.
+    Anytype
+    Share the generated link with the person you want to invite
+
+Why there's no "invite by account ID" in the GUI:
+
+Anytype is a decentralized, local-first, E2E encrypted system. Your account is protected by a 12-word mnemonic recovery phrase generated on-device — no central user directory exists that would allow searching by account ID.
+Anytype
+There's no central server mapping account IDs to invitable profiles.
+
+If you're self-hosting (which applies to your setup), self-hosters can manage viewer/editor invite limits themselves
+Anytype
+, but the invite mechanism remains link-based.
+
+Workaround if links are problematic (e.g. on Linux where anytype:// protocol handling can fail): a community feature request exists to add a "Paste Invitation Link" field inside the Anytype app itself
+GitHub
+— but this hasn't been officially implemented yet. For now, the recipient can try opening the anytype:// link directly from a terminal if the protocol handler is registered, or via the browser if Anytype is set as the default handler.
+
+Is there a specific use case you're trying to solve — perhaps inviting someone on your self-hosted instance?
+
+I want OpenClaw to give access to my AnyType that is selfhosted on a VPS server..
+4:34 PM
+Searched memory, searched the web
+
+Good news — there's an official path for this. Here's the full picture:
+The Architecture
+
+The key insight is that Anytype has an official MCP server (@anyproto/anytype-mcp), and OpenClaw has native MCP support. So the bridge looks like this:
+
+OpenClaw (on your Linux machine)
+    └── MCP plugin → anytype-mcp
+            └── Anytype local API (port 31009)
+                    └── syncs with your VPS (any-sync-bundle)
+
+The important caveat: the Anytype API runs locally (on whichever machine runs the Anytype desktop app or anytype-cli), not directly on the VPS. The VPS hosts the sync/storage layer. So you need either:
+
+    Option A — Run anytype-cli on your VPS and expose its API port remotely (more server-side)
+    Option B — Run Anytype desktop on your local Linux machine, pointed at your self-hosted VPS network, and connect the MCP to the local API (simpler)
+
+Step 1 — Generate an Anytype API Key
+
+Authenticate once via a 4-digit challenge in the desktop app, which generates an API key. This key acts as a bearer token for subsequent requests. API keys can also be managed and generated directly through the desktop client's settings.
+Anytype
+
+In the Anytype desktop app: Settings → API Keys → Create new key
+
+You'll get a Bearer <token> string.
+Step 2 — Install the Anytype MCP Server
+
+On your local machine (where OpenClaw runs):
+bash
+
+# Test it works first
+npx -y @anyproto/anytype-mcp
+
+For a self-hosted instance using anytype-cli (port 31012) or a custom base URL, set the ANYTYPE_API_BASE_URL environment variable accordingly.
+GitHub
+Step 3 — Add to OpenClaw's openclaw.json
+
+OpenClaw has native MCP server support, allowing agents to connect to MCP servers and use their tools directly. You configure MCP servers in your openclaw.json by specifying a server name, command, and arguments.
+SafeClaw
+
+Edit ~/.openclaw/openclaw.json (or wherever your config lives):
+json
+
+{
+  "mcpServers": {
+    "anytype": {
+      "command": "npx",
+      "args": ["-y", "@anyproto/anytype-mcp"],
+      "env": {
+        "ANYTYPE_API_BASE_URL": "http://127.0.0.1:31009",
+        "OPENAPI_MCP_HEADERS": "{\"Authorization\":\"Bearer YOUR_API_KEY_HERE\", \"Anytype-Version\":\"2025-11-08\"}"
+      }
+    }
+  }
+}
+
+Replace YOUR_API_KEY_HERE with the key from Step 1.
+
+Then restart OpenClaw:
+bash
+
+pkill -f openclaw
+openclaw
+
+If Running anytype-cli on the VPS Instead
+
+If you want the API to run on the VPS itself (headless, no desktop app), use the anytype-cli and expose port 31012 securely (via SSH tunnel or VPN — don't expose it publicly without auth):
+bash
+
+# On your local machine, SSH tunnel to VPS
+ssh -L 31009:127.0.0.1:31012 user@YOUR_VPS_IP -N
+
+Then in your MCP config, use:
+json
+
+"ANYTYPE_API_BASE_URL": "http://127.0.0.1:31009"
+
+What OpenClaw Can Then Do
+
+Once connected, you can do things like: "Create a new space called 'Project Ideas'", "Add a new object of type 'Task' with title 'Research AI trends'", create collections, set due dates — all through natural language.
+Anytype
+
+The official MCP covers spaces, objects, lists, properties, types, and global search. There's also a community fork (cryptonahue-mcp-anytype) if you need object update support, which the official one currently lacks.
+
+Which option fits your setup better — local desktop client pointed at the VPS, or headless anytype-cli on the VPS itself?
+
+Currently, my AnyType runs on a VPS self-hosted and I have access to it through my AnyType running on my laptop and tablet. I have also a OpenClaw running on the same VPS that can add files/modify files on the AnyType running on the VPS. 
+
+ What I want is that the OpenClaw on my laptop can also can do things like adding files, reports etct to the AnyType shared space.
+6:40 PM
+
+So the goal is clear: OpenClaw on your laptop should be able to reach the Anytype API on your VPS, not just the local one.
+Searched the web
+
+Now the picture is very clear. Here's the cleanest solution:
+The Situation
+
+Your VPS already has:
+
+    anytype-cli running (serving the API at http://127.0.0.1:31012)
+    OpenClaw running (talking to that local API)
+
+You just need OpenClaw on your laptop to reach that same API. The API isn't exposed remotely — that's the only gap.
+Recommended Solution: SSH Tunnel
+
+This is the cleanest and most secure option — no firewall holes, no exposed ports, no reverse proxy to configure.
+
+On your laptop, run:
+bash
+
+ssh -N -L 31012:127.0.0.1:31012 user@YOUR_VPS_IP
+```
+
+This forwards `localhost:31012` on your laptop straight to the `anytype-cli` API on the VPS. You can make it persistent in `~/.ssh/config`:
+```
+Host vps-anytype
+    HostName YOUR_VPS_IP
+    User your_user
+    LocalForward 31012 127.0.0.1:31012
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+
+Then just ssh -N vps-anytype to bring the tunnel up.
+
+Or as a background daemon:
+bash
+
+ssh -fN vps-anytype
+
+Configure OpenClaw on the Laptop
+
+You need the same API key that the VPS OpenClaw uses. Get it from the VPS:
+bash
+
+# On the VPS
+anytype auth apikey list
+
+Then on your laptop, add the Anytype MCP to OpenClaw's ~/.openclaw/openclaw.json:
+json
+
+{
+  "mcpServers": {
+    "anytype": {
+      "command": "npx",
+      "args": ["-y", "@anyproto/anytype-mcp"],
+      "env": {
+        "ANYTYPE_API_BASE_URL": "http://127.0.0.1:31012",
+        "OPENAPI_MCP_HEADERS": "{\"Authorization\":\"Bearer YOUR_API_KEY\", \"Anytype-Version\":\"2025-11-08\"}"
+      }
+    }
+  }
+}
+
+The 31012 port matches anytype-cli (not the desktop app's 31009). The CLI uses ports 31010–31012 specifically so it can run alongside the desktop app without conflict.
+DeepWiki
+Alternative: Reverse Proxy (if you want permanent access without SSH)
+
+For remote access you can use a reverse proxy, SSH tunnel, or Docker port mapping to expose the local ports. Keep API keys safe — if ports are exposed externally, third parties with your API key could gain unauthorized access to the spaces your headless instance has access to.
+GitHub
+
+If you go this route, put Nginx or Caddy in front of port 31012 with TLS + HTTP Basic Auth as a second layer, since the API key alone is the only thing protecting it. The SSH tunnel is much simpler and safer for a single-person setup.
+Summary
+Step	Where
+ssh -N -L 31012:127.0.0.1:31012 user@vps	Laptop (keep running)
+Copy API key from VPS	anytype auth apikey list on VPS
+Add MCP config to OpenClaw	~/.openclaw/openclaw.json on laptop
+Restart OpenClaw on laptop	pkill -f openclaw && openclaw
+
+Once the tunnel is up and OpenClaw is restarted, your laptop's OpenClaw talks to the VPS Anytype exactly like the VPS OpenClaw does — same spaces, same shared data.
+
+
+Claude is AI and can make mistakes. Please double-check cited sources.
+
+---
+
+<ide_opened_file>The user opened the file /home/rob/.openclaw/openclaw.json in the IDE. This may or may not be related to the current task.</ide_opened_file>
+Please document it and commit (be carefull with the credentiatls on Github) and push.
+
+---
+
+How can we test the setup?
+
+---
+
+Keep on object for me to see it in AnyType in my space.
+
+---
+
+Keep one object for me to see it in AnyType in my space.
+
+---
+
+And now OpenClaw can see the last note?
+
+---
+
+Let me check withOpenClaw now.
+
+---
+
+How do I tell OpenClaw to use the setup? It want to go to Mongo DB database. Can you make a clear instuction for OpenClaw on my laptop on how to use the setup?
+
+---
+
+I think those instruction weher for OpenClaw on the vPS not OpenClaw localy.
+
+---
+
+Great.. Now I need to start a new session on the laptop to test OpenClaw?
+
+---
+
+can we ask OpenClaw on the laptop to start the port mapping to AnyType by itselve?
+
+---
+
+On new sessions, OpenClaw alway reads the TOOLS.md?
+
+---
+
+can you make a mermaid file for the current setup and commit,push it?
