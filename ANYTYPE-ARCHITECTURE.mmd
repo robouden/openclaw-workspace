@@ -1,0 +1,67 @@
+---
+title: OpenClaw ↔ AnyType Integration Architecture
+---
+graph TB
+    subgraph LAPTOP["Rob's Laptop"]
+        OC_L["OpenClaw (local)"]
+        MCP["@anyproto/anytype-mcp<br/>MCP Server (stdio)"]
+        SSH_L["SSH Tunnel<br/>localhost:31012"]
+        AT_APP["AnyType Desktop App<br/>(viewer/editor)"]
+        CC["Claude Code / IDE"]
+
+        OC_L -->|"MCP tools<br/>API-create-object<br/>API-search-global<br/>etc."| MCP
+        CC -->|"curl / scripts"| SSH_L
+        MCP -->|"HTTP REST API"| SSH_L
+    end
+
+    subgraph VPS["VPS — 65.108.24.131 (simplemap.safecast.org)"]
+        subgraph ANYTYPE_STACK["AnyType Stack"]
+            AT_CLI["anytype-cli.service<br/>(anytype serve -q)"]
+            GRPC["gRPC Server<br/>127.0.0.1:31010-31011"]
+            HTTP_API["HTTP REST API<br/>127.0.0.1:31012"]
+            AT_DATA["Account Data<br/>/root/.anytype/"]
+        end
+
+        subgraph SYNC_BACKEND["Sync Backend"]
+            AT_BUNDLE["anytype.service<br/>(any-sync-bundle)<br/>Port 33010/33020"]
+            MONGO["MongoDB<br/>127.0.0.1:27017"]
+            REDIS["Redis<br/>127.0.0.1:6379"]
+        end
+
+        subgraph OPENCLAW_VPS["OpenClaw (VPS)"]
+            OC_V["OpenClaw Agent"]
+            WATCHER["anytype-workspace-sync<br/>File Watcher (Go)"]
+            WORKSPACE["/root/anytype-workspace/<br/>.md .png .pdf files"]
+        end
+
+        AT_CLI --> GRPC
+        AT_CLI --> HTTP_API
+        AT_CLI -->|"sync protocol"| AT_BUNDLE
+        AT_BUNDLE --> MONGO
+        AT_BUNDLE --> REDIS
+
+        OC_V -->|"HTTP API<br/>localhost:31012"| HTTP_API
+        OC_V -->|"writes files"| WORKSPACE
+        WATCHER -->|"inotify watch"| WORKSPACE
+        WATCHER -->|"gRPC create/update/delete"| GRPC
+    end
+
+    subgraph DEVICES["Other Devices"]
+        TABLET["AnyType on Tablet"]
+    end
+
+    SSH_L -.->|"SSH port forward<br/>openclaw-vps"| HTTP_API
+    AT_APP -.->|"sync protocol<br/>port 33010"| AT_BUNDLE
+    TABLET -.->|"sync protocol<br/>port 33010"| AT_BUNDLE
+
+    classDef laptop fill:#e1f5fe,stroke:#0288d1,stroke-width:2px
+    classDef vps fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef anytype fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+    classDef sync fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    classDef device fill:#fce4ec,stroke:#c62828,stroke-width:2px
+
+    class OC_L,MCP,SSH_L,AT_APP,CC laptop
+    class AT_CLI,GRPC,HTTP_API,AT_DATA anytype
+    class AT_BUNDLE,MONGO,REDIS sync
+    class OC_V,WATCHER,WORKSPACE vps
+    class TABLET device
