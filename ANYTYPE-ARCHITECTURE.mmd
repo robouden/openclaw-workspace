@@ -54,11 +54,11 @@ graph TB
     AT_APP -.->|"sync protocol<br/>port 33010"| AT_BUNDLE
     TABLET -.->|"sync protocol<br/>port 33010"| AT_BUNDLE
 
-    classDef laptop fill:#e1f5fe,stroke:#0288d1,stroke-width:2px
-    classDef vps fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    classDef anytype fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
-    classDef sync fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    classDef device fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    classDef laptop fill:#0288d1,stroke:#01579b,stroke-width:2px,color:#fff
+    classDef vps fill:#7b1fa2,stroke:#4a148c,stroke-width:2px,color:#fff
+    classDef anytype fill:#ef6c00,stroke:#e65100,stroke-width:2px,color:#fff
+    classDef sync fill:#2e7d32,stroke:#1b5e20,stroke-width:2px,color:#fff
+    classDef device fill:#c62828,stroke:#b71c1c,stroke-width:2px,color:#fff
 
     class OC_L,MCP,SSH_L,AT_APP,CC laptop
     class AT_CLI,GRPC,HTTP_API,AT_DATA anytype
