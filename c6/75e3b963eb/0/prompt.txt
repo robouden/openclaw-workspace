@@ -1,0 +1,10 @@
+On the VPS (simplemap.safecast.org). Our sync byt  OpenClaw to AnyType of daily reports (7:01) was not working and OpenClaw tried  to fix it by directly added data to the Mongo database. Now there are many multiple instances of the same files in AnyType. Can you fix the syncing issue and clean up AnyType?
+
+---
+
+After fixing can you see if we can yesterday we did setup OpenClaw to be able to us MCP form my laptop. That seems to wok nice. Maybe we should modify the setup of the VPS to do something similar (MCP instead of synching?  See github what we did yesterday.
+
+---
+
+<ide_opened_file>The user opened the file /temp/readonly/TaskOutput tool output (9xzp9s) in the IDE. This may or may not be related to the current task.</ide_opened_file>
+can you document (also make a new mermaid file) and commit., push the changes and update OpenClaw tools/skill set?
