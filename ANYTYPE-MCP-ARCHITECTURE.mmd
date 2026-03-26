@@ -1,0 +1,66 @@
+---
+title: AnyType MCP Architecture (March 2026)
+---
+graph TB
+    subgraph LAPTOP["Rob's Laptop"]
+        CC["Claude Code / IDE"]
+        OC_L["OpenClaw (local)"]
+        MCP_L["@anyproto/anytype-mcp<br/>MCP Server"]
+        SSH_T["SSH Tunnel<br/>localhost:31012 → VPS:31012"]
+        AT_APP["AnyType Desktop App"]
+
+        CC -->|"MCP tools"| MCP_L
+        OC_L -->|"MCP tools"| MCP_L
+        MCP_L -->|"HTTP REST"| SSH_T
+    end
+
+    subgraph VPS["VPS — simplemap.safecast.org (65.108.24.131)"]
+        subgraph ANYTYPE_CLI["AnyType CLI (anytype-cli.service)"]
+            AT_SERVE["anytype serve -q"]
+            GRPC["gRPC :31010"]
+            HTTP["HTTP API :31012"]
+            AT_SERVE --> GRPC
+            AT_SERVE --> HTTP
+        end
+
+        subgraph OPENCLAW_VPS["OpenClaw (VPS)"]
+            OC_V["OpenClaw Agent"]
+            MCP_V["@anyproto/anytype-mcp<br/>MCP Server"]
+            CRON["Cron: 22:01 UTC<br/>daily-report-api.sh"]
+        end
+
+        subgraph SYNC_BACKEND["Self-Hosted Sync Backend"]
+            BUNDLE["anytype.service<br/>(any-sync-bundle)"]
+            MONGO["MongoDB :27017"]
+            REDIS["Redis :6379"]
+            BUNDLE --> MONGO
+            BUNDLE --> REDIS
+        end
+
+        OC_V -->|"MCP tools"| MCP_V
+        MCP_V -->|"HTTP REST"| HTTP
+        CRON -->|"curl HTTP API"| HTTP
+        AT_SERVE -->|"sync protocol"| BUNDLE
+    end
+
+    subgraph DEVICES["Other Devices"]
+        TABLET["AnyType on Tablet"]
+    end
+
+    SSH_T -.->|"SSH port forward"| HTTP
+    AT_APP -.->|"sync protocol :33010"| BUNDLE
+    TABLET -.->|"sync protocol :33010"| BUNDLE
+
+    classDef laptop fill:#0288d1,stroke:#01579b,stroke-width:2px,color:#fff
+    classDef vps fill:#7b1fa2,stroke:#4a148c,stroke-width:2px,color:#fff
+    classDef anytype fill:#ef6c00,stroke:#e65100,stroke-width:2px,color:#fff
+    classDef sync fill:#2e7d32,stroke:#1b5e20,stroke-width:2px,color:#fff
+    classDef device fill:#c62828,stroke:#b71c1c,stroke-width:2px,color:#fff
+    classDef cron fill:#5c6bc0,stroke:#283593,stroke-width:2px,color:#fff
+
+    class CC,OC_L,MCP_L,SSH_T,AT_APP laptop
+    class AT_SERVE,GRPC,HTTP anytype
+    class BUNDLE,MONGO,REDIS sync
+    class OC_V,MCP_V vps
+    class CRON cron
+    class TABLET device

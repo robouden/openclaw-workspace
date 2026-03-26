@@ -2,7 +2,9 @@
 
 ## Overview
 
-Automated daily VPS health reports generated at **07:00 JST (22:00 UTC)** and synced to AnyType.
+Automated daily VPS health reports generated at **07:01 JST (22:01 UTC)** and pushed to AnyType via the HTTP API.
+
+**Architecture:** Uses the AnyType HTTP API directly (no file watcher). See `ANYTYPE-MCP-ARCHITECTURE.mmd` for the full diagram.
 
 ---
 
@@ -10,13 +12,28 @@ Automated daily VPS health reports generated at **07:00 JST (22:00 UTC)** and sy
 
 ### Cron Schedule
 ```bash
-0 22 * * * /root/.openclaw/workspace/scripts/vps-daily-report.sh >> /var/log/vps-daily-report.log 2>&1
+1 22 * * * /root/scripts/daily-report-api.sh >> /var/log/anytype-daily-report.log 2>&1
 ```
 
-- **Time:** 22:00 UTC every day
-- **JST equivalent:** 07:00 JST (next day)
-- **Script:** `/root/.openclaw/workspace/scripts/vps-daily-report.sh`
-- **Logs:** `/var/log/vps-daily-report.log`
+- **Time:** 22:01 UTC every day
+- **JST equivalent:** 07:01 JST (next day)
+- **Script:** `/root/scripts/daily-report-api.sh`
+- **Logs:** `/var/log/anytype-daily-report.log`
+
+---
+
+## How It Works
+
+1. Cron fires `daily-report-api.sh` at 22:01 UTC
+2. Script collects system metrics (uptime, disk, memory, CPU, services, security)
+3. Script POSTs a new note to AnyType via HTTP API (`POST /v1/spaces/{id}/objects`)
+4. Report appears in AnyType space "Rob New Place"
+
+```
+Cron → daily-report-api.sh → AnyType HTTP API (:31012) → AnyType Space
+```
+
+No file watcher, no gRPC, no MongoDB writes. Just a direct API call.
 
 ---
 
@@ -31,29 +48,22 @@ Automated daily VPS health reports generated at **07:00 JST (22:00 UTC)** and sy
 **Services:**
 - nginx (status)
 - fail2ban (status)
-- anytype-workspace-sync (status)
+- anytype-cli (status)
 - openclaw-gateway (status)
 
 **Security:**
 - Currently banned IPs (fail2ban)
 - Total banned IPs (all-time)
 
-**Storage:**
-- AnyType workspace files count
-- Sync status
-
 ---
 
-## Auto-Sync to AnyType
+## AnyType API Details
 
-The report file is automatically picked up by the file watcher:
-
-1. Script generates: `/root/anytype-workspace/VPS-DAILY-REPORT-2026-03-03.md`
-2. File watcher detects new file
-3. anytype-workspace-sync service syncs it
-4. Appears in AnyType workspace as: `VPS Daily Health Report — 2026-03-03`
-
-**Sync time:** <5 seconds after generation
+- **Endpoint:** `http://127.0.0.1:31012/v1/spaces/{SPACE_ID}/objects`
+- **Space ID:** `bafyreig4q7t3vt7b7zmvfv3emj7jfrvjamuhu4crws3dhn3uaxhh3u37k4.10piockh34xft`
+- **API Key:** Stored in script as `openclaw-vps` key
+- **Object type:** `note` (uses `type_key` field)
+- **Content:** Passed in `body` field as markdown
 
 ---
 
@@ -61,12 +71,13 @@ The report file is automatically picked up by the file watcher:
 
 To test the report manually:
 ```bash
-bash /root/.openclaw/workspace/scripts/vps-daily-report.sh
+ssh root@65.108.24.131 'bash /root/scripts/daily-report-api.sh'
 ```
 
-File will appear in:
-- `/root/anytype-workspace/VPS-DAILY-REPORT-YYYY-MM-DD.md`
-- AnyType workspace (within 5 seconds)
+Check the log:
+```bash
+ssh root@65.108.24.131 'tail -20 /var/log/anytype-daily-report.log'
+```
 
 ---
 
@@ -74,52 +85,41 @@ File will appear in:
 
 Check if cron job is scheduled:
 ```bash
-crontab -l | grep vps-daily-report
+ssh root@65.108.24.131 'crontab -l | grep daily-report'
 ```
 
-Expected output:
+Check if AnyType HTTP API is running:
+```bash
+ssh root@65.108.24.131 'ss -tlnp | grep 31012'
 ```
-0 22 * * * /root/.openclaw/workspace/scripts/vps-daily-report.sh >> /var/log/vps-daily-report.log 2>&1
+
+Check service status:
+```bash
+ssh root@65.108.24.131 'systemctl status anytype-cli.service'
 ```
 
 ---
 
-## View Reports in AnyType
+## VPS Services (Current State)
 
-**Location:** Your workspace
-**Name format:** `VPS Daily Health Report — YYYY-MM-DD`
-**Updated:** Every day at 07:00 JST
-
-Each report contains:
-- System metrics snapshot
-- Service status check
-- Security stats
-- Storage info
+| Service | Status | Purpose |
+|---------|--------|---------|
+| `anytype-cli.service` | **active, enabled** | Runs `anytype serve -q` (gRPC :31010 + HTTP :31012) |
+| `anytype-workspace-sync.service` | disabled | Old Go file watcher (replaced by MCP/API) |
+| `anytype-watcher.service` | disabled | Old file watcher (replaced) |
 
 ---
 
-## Next Reports
+## Migration Notes (March 2026)
 
-- **2026-03-04:** 07:00 JST
-- **2026-03-05:** 07:00 JST
-- ... and so on (daily)
+The old setup used a Go file-watcher service (`anytype-workspace-sync`) that watched `/root/anytype-workspace/` and synced via gRPC. This had a critical bug: it always created new objects instead of updating existing ones, causing duplicates on every restart.
 
----
+**Old flow:** Script → write file → file watcher → gRPC → AnyType (broken, created duplicates)
+**New flow:** Script → HTTP API → AnyType (works correctly)
 
-## Maintenance
-
-No manual action needed. Reports are:
-- ✅ Auto-generated daily
-- ✅ Auto-synced to AnyType
-- ✅ Auto-logged for auditing
-
-If you need to modify:
-1. Edit `/root/.openclaw/workspace/scripts/vps-daily-report.sh`
-2. Test: `bash /root/.openclaw/workspace/scripts/vps-daily-report.sh`
-3. Cron will use updated version next run
+Cleanup performed: 60 duplicate objects deleted from AnyType space.
 
 ---
 
-**Setup Date:** 2026-03-03 23:29 UTC
-**Status:** ✅ Active
-**Next Run:** 2026-03-04 22:00 UTC (07:00 JST)
+**Setup Date:** 2026-03-26 (migrated from file-watcher approach)
+**Status:** Active
