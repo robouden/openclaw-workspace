@@ -3,7 +3,7 @@
   "checkpoint_id": "f55036114881",
   "strategy": "manual-commit",
   "branch": "master",
-  "checkpoints_count": 63,
+  "checkpoints_count": 68,
   "files_touched": [
     "ANYTYPE-SERVICE-CONFIG.md",
     "vps/systemd/anytype-cli.service",
@@ -33,13 +33,19 @@
       "transcript": "/f5/5036114881/3/full.jsonl",
       "content_hash": "/f5/5036114881/3/content_hash.txt",
       "prompt": "/f5/5036114881/3/prompt.txt"
+    },
+    {
+      "metadata": "/f5/5036114881/4/metadata.json",
+      "transcript": "/f5/5036114881/4/full.jsonl",
+      "content_hash": "/f5/5036114881/4/content_hash.txt",
+      "prompt": "/f5/5036114881/4/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 446,
-    "cache_creation_tokens": 407887,
-    "cache_read_tokens": 13484279,
-    "output_tokens": 81747,
-    "api_call_count": 238
+    "input_tokens": 593,
+    "cache_creation_tokens": 475297,
+    "cache_read_tokens": 15992687,
+    "output_tokens": 98179,
+    "api_call_count": 284
   }
 }
