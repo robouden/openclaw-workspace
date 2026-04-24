@@ -1,0 +1,20 @@
+Claude Code can extention not be used inside VSCode and Antigravity and VSCodium. And I noticed that I need to give my linux mint root passowrd to access Claud in the termainla too. I I use antigrvity with another user on the Linux mint (switched users) than no issues. I think somehow the premissions for claude are incorrect. Can you fix it?
+
+---
+
+1
+
+---
+
+rob@rob-GS66-Stealth-10UG:~$ !sudo chown -R rob:rob ~/.cargo ~/.config/fish ~/.vscode-oss/extensions ~/Documents/simple-gateway-main &&  
+  sudo rm -f ~/mintupgrade-2025-01-16T153927.log ~/mintupgrade-2025-09-03T111424.log && echo DONE   
+sudo apt remove tlp chown -R rob:rob ~/.cargo ~/.config/fish ~/.vscode-oss/extensions ~/Documents/simple-gateway-main &&  
+[sudo] password for rob:        
+E: Command line option 'R' [from -R] is not understood in combination with the other options.
+rob@rob-GS66-Stealth-10UG:~$
+
+---
+
+rob@rob-GS66-Stealth-10UG:~$   sudo chown -R rob:rob ~/.cargo ~/.config/fish ~/.vscode-oss/extensions ~/Documents/simple-gateway-main &&   
+  sudo rm -f ~/mintupgrade-2025-01-16T153927.log ~/mintupgrade-2025-09-03T111424.log && echo DONE  
+DONE
