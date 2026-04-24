@@ -1,0 +1,85 @@
+Can you find out why Hermes is struggling to displaying Initializing agent...
+a very long time?
+
+---
+
+Can you find out why Hermes is struggling to displaying Initializing agent...
+a very long time?
+
+---
+
+Can you find out why Hermes is struggling to displaying Initializing agent...
+a very long time?
+
+---
+
+Can you find out why Hermes is struggling to displaying Initializing agent...
+a very long time?
+
+---
+
+screenshot
+
+---
+
+rob@rob-GS66-Stealth-10UG:~$ hermes auth reset anthropic
+Reset status on 0 anthropic credentials
+rob@rob-GS66-Stealth-10UG:~$ hermes auth reset anthropic
+
+---
+
+rob@rob-GS66-Stealth-10UG:~$ hermes gateway restart
+Job for hermes-gateway.service failed because the control process exited with error code.
+See "systemctl --user status hermes-gateway.service" and "journalctl --user -xeu hermes-gateway.service" for details.
+
+✗ Gateway service restart failed.
+  The service definition exists, but the service manager did not recover it.
+  Fix the service, then retry: hermes gateway start
+rob@rob-GS66-Stealth-10UG:~$ hermes gateway start
+Job for hermes-gateway.service failed because the control process exited with error code.
+See "systemctl --user status hermes-gateway.service" and "journalctl --user -xeu hermes-gateway.service" for details.
+Traceback (most recent call last):
+  File "/home/rob/.local/bin/hermes", line 10, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/rob/.hermes/hermes-agent/hermes_cli/main.py", line 8444, in main
+    args.func(args)
+  File "/home/rob/.hermes/hermes-agent/hermes_cli/main.py", line 1141, in cmd_gateway
+    gateway_command(args)
+  File "/home/rob/.hermes/hermes-agent/hermes_cli/gateway.py", line 3590, in gateway_command
+    systemd_start(system=system)
+  File "/home/rob/.hermes/hermes-agent/hermes_cli/gateway.py", line 1488, in systemd_start
+    _run_systemctl(["start", get_service_name()], system=system, check=True, timeout=30)
+  File "/home/rob/.hermes/hermes-agent/hermes_cli/gateway.py", line 662, in _run_systemctl
+    return subprocess.run(_systemctl_cmd(system) + args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rob/.local/share/uv/python/cpython-3.11.11-linux-x86_64-gnu/lib/python3.11/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['systemctl', '--user', 'start', 'hermes-gateway']' returned non-zero exit status 1.
+rob@rob-GS66-Stealth-10UG:~$
+
+---
+
+Still NG
+
+---
+
+Switching model (out of free tier for Qwen) but getting errors:
+
+---
+
+I do not like to use openrouter
+
+---
+
+here is the new key:
+
+REDACTED
+
+---
+
+I want to setup that Hermes uses mu Claude Pro acconut for Claude Sonet 4.6. But when I authorize with the credentials, It accpts it but when I run Hemes doctor it does not work. Can you fix it?
+
+---
+
+I use Claude Code in VSCode and here in AntiGravity. Why can I not use that setup with Hermes? The API key from Anthropic "eats" way to much credits for me. Can yuo research how I can use the Claude  Pro credits with Hermes like I do with other IDEs?
