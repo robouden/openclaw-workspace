@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "f55036114881",
+  "strategy": "manual-commit",
+  "branch": "master",
+  "checkpoints_count": 36,
+  "files_touched": [
+    "ANYTYPE-SERVICE-CONFIG.md",
+    "vps/systemd/anytype-cli.service",
+    "vps/systemd/anytype-prestart.sh"
+  ],
+  "sessions": [
+    {
+      "metadata": "/f5/5036114881/0/metadata.json",
+      "transcript": "/f5/5036114881/0/full.jsonl",
+      "content_hash": "/f5/5036114881/0/content_hash.txt",
+      "prompt": "/f5/5036114881/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 190,
+    "cache_creation_tokens": 157117,
+    "cache_read_tokens": 6386992,
+    "output_tokens": 30124,
+    "api_call_count": 118
+  }
+}

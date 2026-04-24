@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "f55036114881",
+  "session_id": "2cde0f8c-7166-4148-8233-07a15709dd76",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-24T00:42:54.012846565Z",
+  "branch": "master",
+  "checkpoints_count": 36,
+  "files_touched": [
+    "ANYTYPE-SERVICE-CONFIG.md",
+    "vps/systemd/anytype-cli.service",
+    "vps/systemd/anytype-prestart.sh"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "5da0073cd29c",
+  "token_usage": {
+    "input_tokens": 190,
+    "cache_creation_tokens": 157117,
+    "cache_read_tokens": 6386992,
+    "output_tokens": 30124,
+    "api_call_count": 118
+  },
+  "session_metrics": {
+    "turn_count": 36
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-24T00:42:53.53054161Z",
+    "agent_lines": 152,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 36,
+    "total_committed": 152,
+    "agent_percentage": 100
+  }
+}
