@@ -1,4 +1,59 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(top -bn1)",
+      "Bash(journalctl --user -u openclaw-gateway.service --no-pager -n 300)",
+      "Bash(journalctl --user -u openclaw-gateway.service --no-pager -n 500)",
+      "Bash(journalctl --user --no-pager --since \"10 minutes ago\" -u openclaw-gateway.service)",
+      "Bash(SYSTEMD_LOG_LEVEL=debug journalctl --user --no-pager -n 50)",
+      "Bash(journalctl --user --no-pager -n 50 _SYSTEMD_USER_UNIT=openclaw-gateway.service)",
+      "Bash(systemctl --user status openclaw-gateway.service --no-pager -l -n 200)",
+      "Bash(systemctl --user restart openclaw-gateway.service)",
+      "Bash(systemctl --user status openclaw-gateway.service --no-pager -l -n 15)",
+      "Bash(systemctl --user status openclaw-gateway.service --no-pager -l -n 25)",
+      "Bash(hermes --version)",
+      "Bash(hermes --help)",
+      "Bash(hermes login *)",
+      "Bash(hermes auth *)",
+      "Bash(hermes model *)",
+      "Bash(qwen --help)",
+      "Bash(/home/rob/.npm-global/bin/qwen --help)",
+      "Bash(hermes claw *)",
+      "Bash(systemctl --user status openclaw-gateway)",
+      "Bash(systemctl --user list-units --type=service)",
+      "Bash(systemctl --user status hermes-gateway.service)",
+      "Bash(journalctl --user -u hermes-gateway.service --no-pager -n 20)",
+      "Bash(systemctl --user stop openclaw-gateway)",
+      "Bash(systemctl --user disable openclaw-gateway)",
+      "Bash(systemctl --user reset-failed hermes-gateway)",
+      "Bash(systemctl --user start hermes-gateway)",
+      "Bash(systemctl --user status hermes-gateway --no-pager -n 10)",
+      "Bash(pkill -f \"hermes-webui/server.py\")",
+      "Bash(pkill -f \"bootstrap.py\")",
+      "Bash(systemctl --user enable --now hermes-webui)",
+      "Bash(systemctl --user status hermes-webui --no-pager -n 10)",
+      "Bash(systemctl --user status hermes-webui --no-pager -n 15)",
+      "Bash(systemctl --user enable hermes-webui)",
+      "Bash(systemctl --user start hermes-webui)",
+      "Bash(loginctl enable-linger *)",
+      "Bash(loginctl show-user *)",
+      "Bash(systemctl --user status hermes-webui --no-pager -n 30)",
+      "Bash(systemctl --user restart hermes-webui)",
+      "Bash(systemctl --user status hermes-webui --no-pager -n 8)",
+      "Bash(systemctl --user is-active hermes-webui)",
+      "Bash(systemctl --user status hermes-gateway --no-pager -n 25)",
+      "Bash(journalctl --user -u hermes-gateway --no-pager -n 60)"
+    ],
+    "deny": [
+      "Read(./.entire/metadata/**)"
+    ],
+    "additionalDirectories": [
+      "/home/rob/.openclaw",
+      "/home/rob/.hermes/memories",
+      "/home/rob/.hermes",
+      "/home/rob/.config/systemd/user"
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {
@@ -74,11 +129,6 @@
           }
         ]
       }
-    ]
-  },
-  "permissions": {
-    "deny": [
-      "Read(./.entire/metadata/**)"
     ]
   }
 }

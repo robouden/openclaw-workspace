@@ -25,7 +25,7 @@ Automated daily VPS health reports generated at **07:01 JST (22:01 UTC)** and pu
 ## How It Works
 
 1. Cron fires `daily-report-api.sh` at 22:01 UTC
-2. Script collects system metrics (uptime, disk, memory, CPU, services, security)
+2. Script collects system metrics (uptime, disk, memory, CPU, services, security, error logs)
 3. Script POSTs a new note to AnyType via HTTP API (`POST /v1/spaces/{id}/objects`)
 4. Report appears in AnyType space "Rob New Place"
 
@@ -39,21 +39,36 @@ No file watcher, no gRPC, no MongoDB writes. Just a direct API call.
 
 ## What's in the Report
 
-**System Status:**
-- Uptime
-- Disk usage
-- Memory usage
-- CPU load average
+**Accomplishments:**
+- Report generation status
+- Sync method (HTTP API, <5 seconds)
 
-**Services:**
+**System Health:**
+- Uptime
+- CPU load averages (1/5/15 min)
+- Memory usage (amount + percentage)
+- Disk usage (amount + percentage)
+- Total services running + critical service count
+
+**Services (critical):**
 - nginx (status)
 - fail2ban (status)
 - anytype-cli (status)
 - openclaw-gateway (status)
 
+**Issues Identified:**
+- Error count from system logs (last 24h via journalctl)
+- Last 5 error log lines (verbatim)
+- AnyType sync status
+
 **Security:**
 - Currently banned IPs (fail2ban)
-- Total banned IPs (all-time)
+- SSH attacks blocked (last 24h)
+
+**System Status Summary:**
+- Overall health rating (Excellent / Needs Attention)
+- VPS resource summary
+- AnyType workspace status + space count
 
 ---
 
@@ -117,9 +132,9 @@ The old setup used a Go file-watcher service (`anytype-workspace-sync`) that wat
 **Old flow:** Script → write file → file watcher → gRPC → AnyType (broken, created duplicates)
 **New flow:** Script → HTTP API → AnyType (works correctly)
 
-Cleanup performed: 60 duplicate objects deleted from AnyType space.
+Cleanup performed: 160+ duplicate objects deleted from AnyType space (2026-03-26).
 
 ---
 
-**Setup Date:** 2026-03-26 (migrated from file-watcher approach)
+**Setup Date:** 2026-03-06 (original), 2026-03-26 (migrated to HTTP API + detailed format)
 **Status:** Active
