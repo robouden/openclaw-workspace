@@ -1,0 +1,70 @@
+Can you find out why  Hermes in my browser is not working but in my terminal Hermes does not have any issues? Just check, do not do anything yet.
+
+---
+
+can you check again?
+
+---
+
+The browser does not take the information from the terminal sessions?
+
+---
+
+can we change the behavior of the webui to always follow the terminal?
+
+---
+
+yes, document your findings and apply the fix..
+
+---
+
+I need to restart something?
+
+---
+
+Getting this..
+
+---
+
+The changes will  stick if the webui code get updated?
+
+---
+
+Still not working for me
+
+---
+
+No change..
+
+---
+
+<ide_opened_file>The user opened the file /home/rob/.hermes/.env in the IDE. This may or may not be related to the current task.</ide_opened_file>
+Trough the UI I could chnage provider/model.. Now this error ?
+
+---
+
+Seems Nvidea key is not passtrough?
+
+---
+
+Still not working..
+
+---
+
+switched same issue.. Can we make it that I can switch other providers/models for the UI?
+
+---
+
+That works!!
+
+---
+
+based on what we learned, I want to show how internatinal working together with each strength and weakeness helps the whole world. Can you make a Mermaid diagram about how Hermes (french) , QWen(Chinese) and you (Claude USA)  worked together on a Linux system in Japan to help a Duch user to work better?
+
+---
+
+Can you save the mermiad file as together.md in /home/rob/Downloads?
+
+---
+
+Can you save the mermaid file as together.mmd (not sure about the mermaind extention)  in /home/rob/Downloads?
