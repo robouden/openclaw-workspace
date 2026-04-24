@@ -1,0 +1,9 @@
+same error as before: [Image #1]
+
+---
+
+On my Linix Mint setup I have two users. One is this user and the other one is Rob Oudendijk. Antigravity with Claude code extntion works fine on the Rob Oudendijk user, but on the current user (rob) it does not work. Maybe you caouls find out from the differences what is the issue for this user?
+
+---
+
+yes
