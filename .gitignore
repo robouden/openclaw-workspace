@@ -33,3 +33,8 @@ code/anytype-local/anytype-local-sync
 
 # IDE / editor tooling
 .opencode/
+.qwen/
+
+# Entire / session transcript exports (may contain API keys captured during conversations)
+full.jsonl
+sessions/
