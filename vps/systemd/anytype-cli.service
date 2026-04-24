@@ -1,0 +1,34 @@
+[Unit]
+Description=Anytype CLI headless server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+
+# Pre-start: wait for ports to be released (prevents "address already in use")
+ExecStartPre=/usr/local/bin/anytype-prestart.sh
+
+ExecStart=/root/.local/bin/anytype serve -q --listen-address 127.0.0.1:31012
+
+# Process management (avoid zombies)
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=60
+
+# Auto-restart on ANY exit (not just failures — graceful exits counted too)
+Restart=always
+RestartSec=10
+StartLimitInterval=600
+StartLimitBurst=10
+
+# Resource limits
+MemoryMax=500M
+CPUQuota=50%
+
+# Security
+PrivateTmp=yes
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

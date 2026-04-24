@@ -1,11 +1,13 @@
-# AnyType Service Configuration — Zombie Process Prevention
+# AnyType Service Configuration — Zombie Process Prevention & Port Binding Fix
 
-**Updated:** 2026-03-04  
-**Purpose:** Prevent zombie processes and improve service stability
+**Updated:** 2026-04-04
+**Purpose:** Prevent zombie processes, port binding crashes, and improve service stability
 
 ---
 
-## Problem
+## Problems Solved
+
+### Problem 1: Zombie Processes (Fixed 2026-03-04)
 
 AnyType service was creating zombie processes because:
 1. ❌ `Restart=on-failure` doesn't restart on graceful exits (exit code 0)
@@ -13,11 +15,31 @@ AnyType service was creating zombie processes because:
 3. ❌ No `TimeoutStopSec` → slow shutdown leaves orphaned processes
 4. ❌ No resource limits → unbounded memory/CPU usage
 
+### Problem 2: Port Binding Crashes (Fixed 2026-04-04)
+
+Service repeatedly crashed with `"address already in use"` on ports 31010/31011/31012:
+
+**The crash cycle:**
+```
+1. anytype-cli.service restarts (after crash or manual restart)
+2. Tries to bind to 127.0.0.1:31010 (gRPC), 31011 (gRPC proxy), 31012 (HTTP)
+3. Old process hasn't fully released sockets yet (TIME_WAIT)
+4. "address already in use" → crash
+5. Systemd hits StartLimitBurst → gives up → manual intervention needed
+```
+
+**Root causes identified:**
+- No `SO_REUSEADDR`/`SO_REUSEPORT` in anytype binary
+- Previous prestart script used `netstat` (not installed on VPS)
+- Brace expansion `{1..30}` doesn't work in `/bin/sh` (systemd context)
+- Malformed `fuser` command with line break in script
+- Redundant second `ExecStartPre` that blocked starts when ports were in use
+
 ---
 
 ## Solution: Improved systemd Configuration
 
-### Current Config (Fixed)
+### Current Config (Final — Both Fixes Applied)
 
 **File:** `/etc/systemd/system/anytype-cli.service`
 
@@ -25,35 +47,102 @@ AnyType service was creating zombie processes because:
 [Unit]
 Description=Anytype CLI headless server
 After=network.target
-Wants=anytype-cli.service
 
 [Service]
 Type=simple
 User=root
-ExecStart=/root/.local/bin/anytype serve -q
 
-# Process management (avoid zombies) ⭐
-KillMode=mixed                    # Kill main process + all children
-KillSignal=SIGTERM                # Graceful shutdown (SIGTERM first)
-TimeoutStopSec=30                 # Force kill after 30 seconds
+# Pre-start: wait for ports to be released (prevents "address already in use")
+ExecStartPre=/usr/local/bin/anytype-prestart.sh
 
-# Auto-restart (for graceful exits) ⭐
-Restart=always                    # Restart on ANY exit (not just failures)
-RestartSec=10                     # Wait 10 seconds between restarts
-StartLimitInterval=300            # Prevent restart loop (5 restarts per 5min)
-StartLimitBurst=5
+ExecStart=/root/.local/bin/anytype serve -q --listen-address 127.0.0.1:31012
 
-# Resource limits (prevent runaway)
-MemoryLimit=500M                  # Cap memory at 500MB
-CPUQuota=50%                      # Cap CPU at 50% of 1 core
+# Process management (avoid zombies)
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=60
+
+# Auto-restart on ANY exit (not just failures)
+Restart=always
+RestartSec=10
+StartLimitInterval=600
+StartLimitBurst=10
+
+# Resource limits
+MemoryMax=500M
+CPUQuota=50%
 
 # Security
-PrivateTmp=yes                    # Isolated /tmp
-NoNewPrivileges=true              # Can't escalate privileges
+PrivateTmp=yes
+NoNewPrivileges=true
 
 [Install]
 WantedBy=multi-user.target
 ```
+
+**File:** `/usr/local/bin/anytype-prestart.sh`
+
+```bash
+#!/bin/bash
+# Pre-start cleanup: Wait for anytype ports to be released, force-kill if stuck
+# Ports: 31010 (gRPC), 31011 (gRPC web proxy), 31012 (HTTP API)
+
+PORTS="31010 31011 31012"
+MAX_WAIT=30
+
+for i in $(seq 1 $MAX_WAIT); do
+    # Check if any of our ports are still in use
+    IN_USE=false
+    for port in $PORTS; do
+        if ss -tln | grep -q ":${port} "; then
+            IN_USE=true
+            break
+        fi
+    done
+
+    if [ "$IN_USE" = false ]; then
+        echo "All ports clear, proceeding with start"
+        exit 0
+    fi
+
+    echo "Waiting for ports to be released... ($i/$MAX_WAIT)"
+    sleep 1
+done
+
+# Force kill whatever is holding the ports after timeout
+echo "Timeout reached, force-killing processes on ports $PORTS"
+for port in $PORTS; do
+    fuser -k "${port}/tcp" 2>/dev/null || true
+done
+sleep 2
+exit 0
+```
+
+### Port Pre-Start Script — How It Works
+
+```
+Service restart triggered
+        ↓
+ExecStartPre: anytype-prestart.sh runs
+        ↓
+Loop (up to 30 seconds):
+  ├─ Check ports 31010, 31011, 31012 with `ss -tln`
+  ├─ If ALL clear → exit 0 → service starts
+  └─ If ANY in use → wait 1s → retry
+        ↓
+After 30s timeout (if still stuck):
+  ├─ Force-kill with `fuser -k` on each port
+  ├─ Wait 2s for cleanup
+  └─ exit 0 → service starts
+        ↓
+anytype serve binds successfully
+```
+
+**Key design decisions:**
+- Uses `ss` instead of `netstat` (the latter isn't installed on the VPS)
+- Uses `$(seq 1 30)` instead of `{1..30}` (brace expansion doesn't work in `/bin/sh`)
+- Loops over all three ports individually (not a regex, avoids false matches)
+- Force-kill is a last resort, not the first action
 
 ---
 
@@ -224,11 +313,17 @@ systemctl status anytype-cli.service  # Should be running again
 
 ## Current Status
 
-✅ **Applied:** 2026-03-04  
-✅ **Service:** anytype-cli (active, running)  
-✅ **Zombie Prevention:** Enabled  
-✅ **Resource Limits:** Active (500MB memory, 50% CPU)  
-✅ **Auto-restart:** Enabled with rate limiting  
+✅ **Zombie Prevention:** Enabled (2026-03-04)
+✅ **Port Binding Fix:** Applied (2026-04-04)
+✅ **Service:** anytype-cli (active, running)
+✅ **Prestart Script:** `/usr/local/bin/anytype-prestart.sh` (working)
+✅ **Auto-restart:** Enabled with rate limiting (Restart=always, Burst=10/600s)
+✅ **Resource Limits:** Active (500MB memory, 50% CPU)
+✅ **Verified:** 3x sequential restart + hard kill -9 recovery — all passed
+
+### Deployment Artifacts
+- `vps/systemd/anytype-cli.service` — Unit file (for reference/redeployment)
+- `vps/systemd/anytype-prestart.sh` — Pre-start cleanup script
 
 ---
 
