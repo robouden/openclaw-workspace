@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentMesh Chats</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
+<style>
+  /* Robouden Dark palette:
+     bg:       #404040  editor
+     sidebar:  #353535
+     panel:    #505050
+     deep:     #303030  peekView
+     menu:     #272727
+     fg:       #DEDEDE
+     fg-dim:   #b0b0b0
+     accent:   #e58520  list.highlight
+     accent2:  #3655b5  badge/peekBorder
+     yellow:   #FCEB6C  cursor/peek
+     select:   #A0A0C0
+  */
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #404040;
+    color: #DEDEDE;
+    min-height: 100vh;
+  }
+
+  header {
+    background: #272727;
+    padding: 18px 32px;
+    border-bottom: 2px solid #e5852055;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  header h1 {
+    font-size: 1.6rem;
+    letter-spacing: 2px;
+    color: #fff;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+
+  header .subtitle {
+    font-size: 0.8rem;
+    color: #b0b0b0;
+    letter-spacing: 1px;
+  }
+
+  .controls {
+    display: flex;
+    gap: 12px;
+    padding: 16px 32px;
+    align-items: center;
+    flex-wrap: wrap;
+    background: #353535;
+    border-bottom: 1px solid #ffffff15;
+  }
+
+  .controls input[type=text] {
+    flex: 1;
+    min-width: 260px;
+    padding: 10px 16px;
+    font-size: 1rem;
+    background: #303030;
+    border: 1px solid #505050;
+    border-radius: 4px;
+    color: #DEDEDE;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .controls input[type=text]:focus { border-color: #e58520; }
+  .controls input[type=text]::placeholder { color: #888; }
+
+  .controls select {
+    padding: 10px 14px;
+    background: #303030;
+    border: 1px solid #505050;
+    border-radius: 4px;
+    color: #DEDEDE;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  .controls select:focus { border-color: #e58520; outline: none; }
+
+  .stat {
+    margin-left: auto;
+    font-size: 0.85rem;
+    color: #b0b0b0;
+    white-space: nowrap;
+  }
+  .stat span { color: #e58520; font-weight: bold; }
+
+  .table-wrap {
+    padding: 24px 32px;
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+
+  thead th {
+    background: #303030;
+    color: #FCEB6C;
+    padding: 10px 12px;
+    text-align: left;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #e5852044;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+  }
+  thead th:hover { background: #383838; }
+  thead th.sort-asc::after  { content: ' ▲'; font-size: 0.7em; color: #e58520; }
+  thead th.sort-desc::after { content: ' ▼'; font-size: 0.7em; color: #e58520; }
+
+  tbody tr {
+    border-bottom: 1px solid #ffffff10;
+    transition: background 0.1s;
+  }
+  tbody tr:nth-child(even) { background: #3a3a3a; }
+  tbody tr:hover { background: #4e4e4e; cursor: pointer; }
+
+  td {
+    padding: 9px 12px;
+    vertical-align: top;
+  }
+
+  td.date   { white-space: nowrap; color: #b0b0b0; font-size: 0.82rem; width: 155px; min-width: 155px; }
+  td.agent  { white-space: nowrap; width: 100px; min-width: 90px; }
+  td.role   { white-space: nowrap; width: 80px; min-width: 70px; color: #a8a8a8; font-size: 0.8rem; }
+  td.thread { white-space: nowrap; width: 150px; min-width: 80px; max-width: 150px; color: #b0b0b0; font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; }
+  td.content { word-break: break-word; line-height: 1.5; color: #DEDEDE; }
+
+  .agent-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  .loading {
+    text-align: center;
+    padding: 40px;
+    color: #888;
+    font-size: 1.1rem;
+  }
+
+  .highlight { background: #e5852044; color: #FCEB6C; border-radius: 2px; }
+
+  .modal-bg {
+    display: none;
+    position: fixed; inset: 0;
+    background: #000000bb;
+    z-index: 100;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 60px 20px;
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: #303030;
+    border: 1px solid #e5852055;
+    border-radius: 4px;
+    max-width: 860px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 28px 32px;
+    position: relative;
+  }
+  .modal h3 { color: #FCEB6C; margin-bottom: 12px; font-size: 1rem; }
+  .modal pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.6;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 0.88rem;
+    color: #DEDEDE;
+  }
+  .modal .close {
+    position: absolute; top: 12px; right: 16px;
+    cursor: pointer; font-size: 1.4rem; color: #888;
+  }
+  .modal .close:hover { color: #FCEB6C; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>AgentMesh Chats</h1>
+    <div class="subtitle">Shared agent conversation history</div>
+  </div>
+</header>
+
+<div class="controls">
+  <input type="text" id="search" placeholder="Search chat content..." autocomplete="off" autofocus>
+  <select id="agentFilter">
+    <option value="all">All agents</option>
+  </select>
+  <div class="stat">Showing <span id="shown">0</span> of <span id="total">0</span> messages</div>
+</div>
+
+<div class="table-wrap">
+  <table id="chatTable">
+    <thead>
+      <tr>
+        <th class="sort-desc" data-col="date">Date</th>
+        <th data-col="agent">Agent</th>
+        <th data-col="role">Role</th>
+        <th data-col="thread">Thread</th>
+        <th data-col="content">Content</th>
+      </tr>
+    </thead>
+    <tbody id="tbody">
+      <tr><td colspan="5" class="loading">Loading...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal" id="modal">
+    <span class="close" id="modalClose">&times;</span>
+    <h3 id="modalMeta"></h3>
+    <pre id="modalContent"></pre>
+  </div>
+</div>
+
+<script>
+const AGENT_COLORS = {
+  claude:          '#e58520',
+  hermes:          '#FCEB6C',
+  qwen:            '#a0c878',
+  openclaw:        '#A0A0C0',
+  opencode:        '#b0b0b0',
+  'opencode-main': '#c8c8c8',
+  'opencode-dev':  '#909090',
+  kimi:            '#d4a0d4',
+};
+function agentColor(name) {
+  return AGENT_COLORS[name] || '#555';
+}
+
+let currentSearch = '';
+let currentAgent  = 'all';
+let debounceTimer = null;
+let allRows       = [];
+
+async function fetchData() {
+  const params = new URLSearchParams({
+    q:      currentSearch,
+    agent:  currentAgent,
+    limit:  500,
+    offset: 0,
+  });
+  const res  = await fetch('api.php?' + params);
+  const data = await res.json();
+
+  // Populate agent dropdown once
+  const sel = document.getElementById('agentFilter');
+  if (sel.options.length === 1) {
+    data.agents.forEach(a => {
+      const o = document.createElement('option');
+      o.value = a; o.textContent = a;
+      sel.appendChild(o);
+    });
+  }
+
+  allRows = data.rows;
+  document.getElementById('total').textContent = data.total;
+  renderTable(data.rows);
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function highlight(text, q) {
+  if (!q) return escapeHtml(text);
+  const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return escapeHtml(text).replace(new RegExp('(' + escaped + ')', 'gi'),
+    '<mark class="highlight">$1</mark>');
+}
+
+function formatDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})
+    + ' ' + d.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
+}
+
+let sortCol = 'date';
+let sortAsc  = false;
+const fullContent = {};
+
+function renderTable(rows) {
+  document.getElementById('shown').textContent = rows.length;
+  const q    = currentSearch;
+  const tbody = document.getElementById('tbody');
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="loading">No results found.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map((r, i) => {
+    fullContent[i] = r.content_preview || '';
+    const preview = (r.content_preview || '').substring(0, 200);
+    const badge   = `<span class="agent-badge" style="background:${agentColor(r.agent)}22;color:${agentColor(r.agent)};border:1px solid ${agentColor(r.agent)}55">${escapeHtml(r.agent)}</span>`;
+    const thread  = r.thread_title ? escapeHtml(r.thread_title.substring(0,30)) : (r.thread_slug ? escapeHtml(r.thread_slug.substring(0,30)) : '—');
+    return `<tr data-idx="${i}">
+      <td class="date">${formatDate(r.created_at)}</td>
+      <td class="agent">${badge}</td>
+      <td class="role">${escapeHtml(r.role)}</td>
+      <td class="thread" title="${r.thread_title||''}">${thread}</td>
+      <td class="content">${highlight(preview, q)}${preview.length < (r.content_preview||'').length ? ' <span style="color:#555">…</span>' : ''}</td>
+    </tr>`;
+  }).join('');
+
+  tbody.querySelectorAll('tr').forEach(tr => {
+    tr.addEventListener('click', () => openModal(parseInt(tr.dataset.idx), rows));
+  });
+}
+
+function openModal(idx, rows) {
+  const r = rows[idx];
+  document.getElementById('modalMeta').textContent =
+    `${r.agent}  ·  ${r.role}  ·  ${formatDate(r.created_at)}` +
+    (r.thread_title ? `  ·  ${r.thread_title}` : '');
+  document.getElementById('modalContent').textContent = r.content_preview || '';
+  document.getElementById('modalBg').classList.add('open');
+}
+
+document.getElementById('modalClose').addEventListener('click', () =>
+  document.getElementById('modalBg').classList.remove('open'));
+document.getElementById('modalBg').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalBg'))
+    document.getElementById('modalBg').classList.remove('open');
+});
+
+document.getElementById('search').addEventListener('input', e => {
+  currentSearch = e.target.value.trim();
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(fetchData, 280);
+});
+
+document.getElementById('agentFilter').addEventListener('change', e => {
+  currentAgent = e.target.value;
+  fetchData();
+});
+
+// Column sort (client-side on loaded rows)
+document.querySelectorAll('thead th[data-col]').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    if (sortCol === col) { sortAsc = !sortAsc; }
+    else { sortCol = col; sortAsc = col !== 'date'; }
+    document.querySelectorAll('thead th').forEach(t => t.classList.remove('sort-asc','sort-desc'));
+    th.classList.add(sortAsc ? 'sort-asc' : 'sort-desc');
+    const sorted = [...allRows].sort((a, b) => {
+      let va, vb;
+      if (col === 'date')    { va = a.created_at; vb = b.created_at; }
+      else if (col === 'agent')  { va = a.agent;      vb = b.agent; }
+      else if (col === 'role')   { va = a.role;        vb = b.role; }
+      else if (col === 'thread') { va = a.thread_title||''; vb = b.thread_title||''; }
+      else                       { va = a.content_preview||''; vb = b.content_preview||''; }
+      return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+    });
+    renderTable(sorted);
+  });
+});
+
+fetchData();
+</script>
+</body>
+</html>
