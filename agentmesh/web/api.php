@@ -14,6 +14,17 @@ try {
     exit;
 }
 
+// Single-message fetch
+if (isset($_GET['id'])) {
+    $id = (int)$_GET['id'];
+    $stmt = $pdo->prepare("SELECT content FROM messages WHERE id = :id");
+    $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+    $stmt->execute();
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    echo json_encode($row ?: ['error' => 'not found']);
+    exit;
+}
+
 $q     = trim($_GET['q']      ?? '');
 $agent = trim($_GET['agent']  ?? '');
 $limit = min((int)($_GET['limit']  ?? 200), 1000);
