@@ -4,6 +4,35 @@ Shared collaboration store so **OpenClaw, Hermes, Qwen Code, Kimi, and Claude Co
 can share chat, results, history, memory, and a task queue — through one MCP server
 backed by PostgreSQL.
 
+## How the agents talk to the DB
+
+```mermaid
+flowchart LR
+    subgraph Agents["AI chat clients"]
+        Claude["Claude Code"]
+        OpenClaw["OpenClaw"]
+        Hermes["Hermes"]
+        Qwen["Qwen Code"]
+        Kimi["Kimi"]
+    end
+
+    Claude -- "MCP / stdio" --> Server["agentmesh MCP server\n(server.py, uv run)"]
+    OpenClaw -- "MCP / stdio" --> Server
+    Hermes -- "MCP / stdio" --> Server
+    Qwen -- "MCP / stdio" --> Server
+    Kimi -- "MCP / stdio" --> Server
+
+    Server -- "SQL" --> DB[("PostgreSQL\nagentmesh db\nport 5433")]
+
+    Ingest["ingest.py\n(firehose daemon)"] -- "tails session logs" --> Agents
+    Ingest -- "SQL" --> DB
+```
+
+Each agent spawns its own `server.py` process (no shared daemon) and identifies itself
+via `AGENTMESH_AGENT`; all copies read/write the same Postgres instance. The `ingest.py`
+daemon separately tails each agent's own chat logs and mirrors turns into the DB as a
+"firehose", independent of the MCP tool calls.
+
 ## Architecture
 
 - **PostgreSQL 18**, user-owned instance (no sudo), port **5433**.
