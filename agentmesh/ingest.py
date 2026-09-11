@@ -33,6 +33,7 @@ SOURCES = {
     "qwen":     "/home/rob/.qwen/projects/*/chats/*.jsonl",
     "openclaw": "/home/rob/.openclaw/workspace/sessions/*.jsonl",
     "kimi":     "/home/rob/.kimi/sessions/*/*/context.jsonl",
+    "codex":    "/home/rob/.codex/sessions/*/*/*/rollout-*.jsonl",
 }
 
 # Hermes has no tailable JSONL; it persists every turn (Desktop/CLI/gateway alike)
@@ -49,7 +50,9 @@ def extract(d: dict):
 
     Skips tool calls/results, thinking, errors, system markers — anything without
     plain user/assistant text. Handles content as str, [{type:text,text}] blocks,
-    or {parts:[{text}]} (Qwen)."""
+    {parts:[{text}]} (Qwen), or {type:response_item,payload:{...}} (Codex)."""
+    if d.get("type") == "response_item":   # codex rollout envelope
+        d = d.get("payload") or {}
     m = d.get("message", d)            # claude/qwen/openclaw nest; kimi is flat
     role = m.get("role") or (d.get("type") if d.get("type") in ("user", "assistant") else None)
     if role not in ("user", "assistant"):
@@ -62,7 +65,7 @@ def extract(d: dict):
     elif isinstance(content, list):
         text = "\n".join(
             b["text"] for b in content
-            if isinstance(b, dict) and b.get("type", "text") == "text" and b.get("text"))
+            if isinstance(b, dict) and b.get("type") in ("text", "input_text", "output_text") and b.get("text"))
     elif isinstance(parts, list):
         text = "\n".join(p["text"] for p in parts if isinstance(p, dict) and p.get("text"))
     text = text.strip()
