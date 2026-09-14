@@ -90,7 +90,7 @@
 ## VPS Auth & API Keys
 - **Anthropic (local):** `sk-ant-...` (main account)
 - **Anthropic (VPS):** `sk-ant-api03-qYNAf7xWQ...` (dedicated key, profile `anthropic:vps`)
-- **Qwen (VPS):** `REDACTED-ROTATED-DASHSCOPE-KEY` (direct DashScope API)
+- **Qwen (VPS):** `REDACTED-ROTATE-IN-DASHSCOPE-CONSOLE` (direct DashScope API)
 - **safecast-web-chat** also on VPS (port 3334) — shares same Anthropic account, separate key
 - Both Anthropic keys share account-level rate limits — that's why VPS moved off Anthropic
 

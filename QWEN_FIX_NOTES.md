@@ -16,7 +16,7 @@ Successfully configured OpenClaw VPS to use Qwen models from Alibaba Cloud Model
       "qwen-portal:default": {
         "type": "api_key",
         "provider": "qwen-portal",
-        "apiKey": "REDACTED-ROTATED-DASHSCOPE-KEY"
+        "apiKey": "REDACTED-ROTATE-IN-DASHSCOPE-CONSOLE"
       }
     }
   }
