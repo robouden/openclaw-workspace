@@ -299,6 +299,7 @@
   <button class="tab active" data-tab="chats">Chats</button>
   <button class="tab" data-tab="people">People</button>
   <button class="tab" data-tab="outreach">Outreach</button>
+  <button class="tab" data-tab="chp">CHP Equipment</button>
 </div>
 
 <div id="chatsPane">
@@ -384,6 +385,36 @@
 </div>
 </div>
 
+<div id="chpPane" style="display:none">
+<div class="controls">
+  <input type="text" id="chpSearch" placeholder="Search maker, model, country, notes..." autocomplete="off">
+  <select id="chpDomesticFilter">
+    <option value="all">All makers</option>
+    <option value="yes">Domestic (Japan) only</option>
+    <option value="no">Foreign only</option>
+  </select>
+  <button id="addChpBtn" style="margin-left:auto;padding:9px 16px;background:#e58520;color:#1c1c1c;border:none;border-radius:4px;font-weight:600;cursor:pointer;">+ Add unit</button>
+</div>
+<div class="table-wrap">
+  <table id="chpTable">
+    <thead>
+      <tr>
+        <th data-ccol="maker">Maker / Model</th>
+        <th data-ccol="country">Country</th>
+        <th data-ccol="kwe">kWe</th>
+        <th data-ccol="elec_efficiency">Elec Eff</th>
+        <th data-ccol="moisture_spec">Moisture spec</th>
+        <th data-ccol="japan_installs">Japan installs</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="chpTbody">
+      <tr><td colspan="7" class="loading">Loading...</td></tr>
+    </tbody>
+  </table>
+</div>
+</div>
+
 <div class="modal-bg" id="personModalBg">
   <div class="modal" id="personModal" style="max-width:520px;">
     <div class="modal-header">
@@ -433,6 +464,41 @@
         <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;">
           <button type="button" id="deleteOutreachBtn" style="padding:9px 16px;background:transparent;color:#e07070;border:1px solid #e0707055;border-radius:4px;cursor:pointer;">Delete</button>
           <button type="button" id="outreachCancelBtn" style="padding:9px 16px;background:#404040;color:#DEDEDE;border:1px solid #505050;border-radius:4px;cursor:pointer;">Cancel</button>
+          <button type="submit" style="padding:9px 16px;background:#e58520;color:#1c1c1c;border:none;border-radius:4px;font-weight:600;cursor:pointer;">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="chpModalBg">
+  <div class="modal" id="chpModal" style="max-width:680px;">
+    <div class="modal-header">
+      <span class="close" id="chpModalClose">&times;</span>
+      <h3 id="chpModalTitle">Add unit</h3>
+    </div>
+    <div class="modal-body" style="padding:16px 32px 24px;">
+      <form id="chpForm">
+        <input type="hidden" id="c_id">
+        <div class="pfield"><label>Maker</label><input id="c_maker" required></div>
+        <div class="pfield"><label>Model</label><input id="c_model"></div>
+        <div class="pfield"><label>Country</label><input id="c_country"></div>
+        <div class="pfield"><label>JP distributor</label><input id="c_jp_distributor"></div>
+        <div class="pfield"><label>kWe</label><input id="c_kwe"></div>
+        <div class="pfield"><label>Electrical efficiency</label><input id="c_elec_efficiency"></div>
+        <div class="pfield"><label>Generation type</label><input id="c_gen_type" placeholder="Gasification (downdraft) / steam / ORC etc"></div>
+        <div class="pfield"><label>Fuel type</label><input id="c_fuel_type"></div>
+        <div class="pfield"><label>Moisture spec</label><input id="c_moisture_spec"></div>
+        <div class="pfield"><label>Chip size spec</label><input id="c_chip_size_spec"></div>
+        <div class="pfield"><label>Japan installs</label><textarea id="c_japan_installs" rows="2"></textarea></div>
+        <div class="pfield"><label>Contact</label><input id="c_contact"></div>
+        <div class="pfield"><label>Website</label><input id="c_website"></div>
+        <div class="pfield"><label><input type="checkbox" id="c_domestic_maker" style="width:auto;margin-right:6px;">Domestic (Japan) maker</label></div>
+        <div class="pfield"><label>Source</label><input id="c_source"></div>
+        <div class="pfield"><label>Notes</label><textarea id="c_notes" rows="6"></textarea></div>
+        <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;">
+          <button type="button" id="deleteChpBtn" style="padding:9px 16px;background:transparent;color:#e07070;border:1px solid #e0707055;border-radius:4px;cursor:pointer;">Delete</button>
+          <button type="button" id="chpCancelBtn" style="padding:9px 16px;background:#404040;color:#DEDEDE;border:1px solid #505050;border-radius:4px;cursor:pointer;">Cancel</button>
           <button type="submit" style="padding:9px 16px;background:#e58520;color:#1c1c1c;border:none;border-radius:4px;font-weight:600;cursor:pointer;">Save</button>
         </div>
       </form>
@@ -612,8 +678,10 @@ document.querySelectorAll('.tabs .tab').forEach(btn => {
     document.getElementById('chatsPane').style.display  = tab === 'chats'  ? '' : 'none';
     document.getElementById('peoplePane').style.display  = tab === 'people' ? '' : 'none';
     document.getElementById('outreachPane').style.display  = tab === 'outreach' ? '' : 'none';
+    document.getElementById('chpPane').style.display  = tab === 'chp' ? '' : 'none';
     if (tab === 'people' && !peopleLoaded) fetchPeople();
     if (tab === 'outreach' && !outreachLoaded) fetchOutreach();
+    if (tab === 'chp' && !chpLoaded) fetchChp();
   });
 });
 
@@ -840,6 +908,117 @@ document.getElementById('deleteOutreachBtn').addEventListener('click', async () 
   await fetch('outreach.php?id=' + id, { method: 'DELETE' });
   outreachModalBg.classList.remove('open');
   await fetchOutreach();
+});
+
+// ---- CHP Equipment tab ----
+let chpRows = [];
+let chpLoaded = false;
+let chpSearch = '';
+let chpDomestic = 'all';
+let chpSortCol = 'kwe';
+let chpSortAsc = true;
+
+async function fetchChp() {
+  const res = await fetch('chp_equipment.php');
+  const data = await res.json();
+  chpRows = data.rows || [];
+  chpLoaded = true;
+  renderChp();
+}
+
+function renderChp() {
+  const q = chpSearch.toLowerCase();
+  let rows = chpRows.filter(c =>
+    (chpDomestic === 'all' || (chpDomestic === 'yes') === (c.domestic_maker === true || c.domestic_maker === 't' || c.domestic_maker === true)) &&
+    (!q || [c.maker,c.model,c.country,c.fuel_type,c.notes,c.japan_installs].join(' ').toLowerCase().includes(q))
+  );
+  rows.sort((a,b) => {
+    const av = (a[chpSortCol]||'').toString().toLowerCase();
+    const bv = (b[chpSortCol]||'').toString().toLowerCase();
+    const an = parseFloat(av), bn = parseFloat(bv);
+    if (!isNaN(an) && !isNaN(bn) && an !== bn) return chpSortAsc ? an - bn : bn - an;
+    if (av < bv) return chpSortAsc ? -1 : 1;
+    if (av > bv) return chpSortAsc ? 1 : -1;
+    return 0;
+  });
+
+  const tbody = document.getElementById('chpTbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="loading">No results found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(c => `
+    <tr>
+      <td>${escapeHtml(c.maker||'')}${c.domestic_maker ? ' <span class="pill" style="background:#3a5f3a">JP</span>' : ''}<br><span style="color:#888;font-size:0.85em">${escapeHtml(c.model||'')}</span></td>
+      <td style="white-space:nowrap">${escapeHtml(c.country||'')}</td>
+      <td style="white-space:nowrap">${escapeHtml(c.kwe||'')}</td>
+      <td style="white-space:nowrap">${escapeHtml(c.elec_efficiency||'')}</td>
+      <td>${escapeHtml(c.moisture_spec||'')}</td>
+      <td style="color:#b0b0b0;font-size:0.85em">${escapeHtml(c.japan_installs||'')}</td>
+      <td class="pactions"><button onclick="editChp(${c.id})">Edit</button></td>
+    </tr>
+  `).join('');
+}
+
+document.getElementById('chpSearch').addEventListener('input', e => {
+  chpSearch = e.target.value.trim();
+  renderChp();
+});
+document.getElementById('chpDomesticFilter').addEventListener('change', e => {
+  chpDomestic = e.target.value;
+  renderChp();
+});
+document.querySelectorAll('th[data-ccol]').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.ccol;
+    if (chpSortCol === col) chpSortAsc = !chpSortAsc;
+    else { chpSortCol = col; chpSortAsc = true; }
+    renderChp();
+  });
+});
+
+const chpForm = document.getElementById('chpForm');
+const chpModalBg = document.getElementById('chpModalBg');
+const CHP_FIELDS = ['maker','model','country','jp_distributor','kwe','elec_efficiency','gen_type',
+    'fuel_type','moisture_spec','chip_size_spec','japan_installs','contact','website','source','notes'];
+
+function openChpDialog(c) {
+  document.getElementById('chpModalTitle').textContent = c ? 'Edit unit' : 'Add unit';
+  document.getElementById('c_id').value = c ? c.id : '';
+  CHP_FIELDS.forEach(f => { document.getElementById('c_'+f).value = c ? (c[f]||'') : ''; });
+  document.getElementById('c_domestic_maker').checked = c ? !!c.domestic_maker : false;
+  document.getElementById('deleteChpBtn').style.display = c ? '' : 'none';
+  chpModalBg.classList.add('open');
+}
+
+document.getElementById('addChpBtn').addEventListener('click', () => openChpDialog(null));
+document.getElementById('chpCancelBtn').addEventListener('click', () => chpModalBg.classList.remove('open'));
+document.getElementById('chpModalClose').addEventListener('click', () => chpModalBg.classList.remove('open'));
+chpModalBg.addEventListener('click', e => { if (e.target === chpModalBg) chpModalBg.classList.remove('open'); });
+
+window.editChp = (id) => openChpDialog(chpRows.find(c => c.id === id));
+
+chpForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('c_id').value;
+  const payload = {};
+  CHP_FIELDS.forEach(f => { payload[f] = document.getElementById('c_'+f).value; });
+  payload.domestic_maker = document.getElementById('c_domestic_maker').checked;
+  if (id) {
+    await fetch('chp_equipment.php?id=' + id, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+  } else {
+    await fetch('chp_equipment.php', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+  }
+  chpModalBg.classList.remove('open');
+  await fetchChp();
+});
+
+document.getElementById('deleteChpBtn').addEventListener('click', async () => {
+  const id = document.getElementById('c_id').value;
+  if (!id || !confirm('Delete this unit?')) return;
+  await fetch('chp_equipment.php?id=' + id, { method: 'DELETE' });
+  chpModalBg.classList.remove('open');
+  await fetchChp();
 });
 </script>
 </body>
