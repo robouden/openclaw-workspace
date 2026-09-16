@@ -125,6 +125,49 @@
     overflow-x: auto;
   }
 
+  table.resizable { table-layout: fixed; }
+  table.resizable th {
+    position: relative;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  table.resizable td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+    word-break: break-word;
+  }
+  .col-resizer {
+    position: absolute;
+    top: 0; right: 0;
+    width: 8px; height: 100%;
+    cursor: col-resize;
+    user-select: none;
+    z-index: 2;
+  }
+  .col-resizer:hover, .col-resizer.resizing { background: #e5852066; }
+
+  thead tr.filter-row th {
+    padding: 6px 8px;
+    background: #262626;
+    border-bottom: 1px solid #ffffff10;
+    cursor: default;
+  }
+  thead tr.filter-row input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 5px 8px;
+    font-size: 0.78rem;
+    background: #1c1c1c;
+    border: 1px solid #444;
+    border-radius: 3px;
+    color: #DEDEDE;
+  }
+  thead tr.filter-row input:focus { border-color: #e58520; outline: none; }
+  thead tr.filter-row input::placeholder { color: #777; }
+  .cell-link { color: #e58520; text-decoration: none; word-break: break-all; }
+  .cell-link:hover { text-decoration: underline; }
+
   table {
     width: 100%;
     border-collapse: collapse;
@@ -158,10 +201,10 @@
     vertical-align: top;
   }
 
-  td.date   { white-space: nowrap; color: #b0b0b0; font-size: 0.82rem; width: 155px; min-width: 155px; }
-  td.agent  { white-space: nowrap; width: 100px; min-width: 90px; }
-  td.role   { white-space: nowrap; width: 80px; min-width: 70px; color: #a8a8a8; font-size: 0.8rem; }
-  td.thread { white-space: nowrap; width: 150px; min-width: 80px; max-width: 150px; color: #b0b0b0; font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; }
+  td.date   { white-space: nowrap; color: #b0b0b0; font-size: 0.82rem; }
+  td.agent  { white-space: nowrap; }
+  td.role   { white-space: nowrap; color: #a8a8a8; font-size: 0.8rem; }
+  td.thread { color: #b0b0b0; font-size: 0.82rem; word-break: break-word; }
   td.content { word-break: break-word; line-height: 1.5; color: #DEDEDE; }
 
   .agent-badge {
@@ -312,14 +355,21 @@
 </div>
 
 <div class="table-wrap">
-  <table id="chatTable">
+  <table id="chatTable" class="resizable">
     <thead>
       <tr>
-        <th class="sort-desc" data-col="date">Date</th>
-        <th data-col="agent">Agent</th>
-        <th data-col="role">Role</th>
-        <th data-col="thread">Thread</th>
-        <th data-col="content">Content</th>
+        <th class="sort-desc" data-col="date" style="width:150px">Date</th>
+        <th data-col="agent" style="width:110px">Agent</th>
+        <th data-col="role" style="width:90px">Role</th>
+        <th data-col="thread" style="width:200px">Thread</th>
+        <th data-col="content" style="width:600px">Content</th>
+      </tr>
+      <tr class="filter-row">
+        <th><input type="text" data-filter-col="date" placeholder="Date..."></th>
+        <th><input type="text" data-filter-col="agent" placeholder="Agent..."></th>
+        <th><input type="text" data-filter-col="role" placeholder="Role..."></th>
+        <th><input type="text" data-filter-col="thread" placeholder="Thread..."></th>
+        <th><input type="text" data-filter-col="content" placeholder="Content..."></th>
       </tr>
     </thead>
     <tbody id="tbody">
@@ -338,19 +388,37 @@
   <button id="addPersonBtn" style="margin-left:auto;padding:9px 16px;background:#e58520;color:#1c1c1c;border:none;border-radius:4px;font-weight:600;cursor:pointer;">+ Add person</button>
 </div>
 <div class="table-wrap">
-  <table id="peopleTable">
+  <table id="peopleTable" class="resizable">
     <thead>
       <tr>
-        <th data-pcol="name">Name</th>
-        <th data-pcol="category">Category</th>
-        <th data-pcol="role">Role / Org</th>
-        <th data-pcol="email">Contact</th>
-        <th data-pcol="last_date">Last Activity</th>
+        <th data-pcol="name" style="width:140px">Name</th>
+        <th data-pcol="kanji" style="width:110px">Kanji</th>
+        <th data-pcol="category" style="width:110px">Category</th>
+        <th data-pcol="role" style="width:160px">Role</th>
+        <th data-pcol="org" style="width:180px">Org</th>
+        <th data-pcol="phone" style="width:130px">Phone</th>
+        <th data-pcol="email" style="width:180px">Email</th>
+        <th data-pcol="website" style="width:180px">Website</th>
+        <th data-pcol="last_date" style="width:110px">Last Activity</th>
+        <th data-pcol="last_note" style="width:320px">Last Note</th>
+        <th></th>
+      </tr>
+      <tr class="filter-row">
+        <th><input type="text" data-filter-col="name" placeholder="Name..."></th>
+        <th><input type="text" data-filter-col="kanji" placeholder="Kanji..."></th>
+        <th><input type="text" data-filter-col="category" placeholder="Category..."></th>
+        <th><input type="text" data-filter-col="role" placeholder="Role..."></th>
+        <th><input type="text" data-filter-col="org" placeholder="Org..."></th>
+        <th><input type="text" data-filter-col="phone" placeholder="Phone..."></th>
+        <th><input type="text" data-filter-col="email" placeholder="Email..."></th>
+        <th><input type="text" data-filter-col="website" placeholder="Website..."></th>
+        <th><input type="text" data-filter-col="last_date" placeholder="Last date..."></th>
+        <th><input type="text" data-filter-col="last_note" placeholder="Last note..."></th>
         <th></th>
       </tr>
     </thead>
     <tbody id="peopleTbody">
-      <tr><td colspan="6" class="loading">Loading...</td></tr>
+      <tr><td colspan="11" class="loading">Loading...</td></tr>
     </tbody>
   </table>
 </div>
@@ -365,21 +433,33 @@
   <button id="addOutreachBtn" style="margin-left:auto;padding:9px 16px;background:#e58520;color:#1c1c1c;border:none;border-radius:4px;font-weight:600;cursor:pointer;">+ Add entry</button>
 </div>
 <div class="table-wrap">
-  <table id="outreachTable">
+  <table id="outreachTable" class="resizable">
     <thead>
       <tr>
-        <th data-ocol="sent_date">Date</th>
-        <th data-ocol="contact">Contact / Org</th>
-        <th data-ocol="channel">Channel</th>
-        <th data-ocol="subject">Subject</th>
-        <th data-ocol="status">Status</th>
-        <th data-ocol="due_date">Due</th>
-        <th data-ocol="note">Notes</th>
+        <th data-ocol="sent_date" style="width:100px">Date</th>
+        <th data-ocol="contact" style="width:180px">Contact / Org</th>
+        <th data-ocol="channel" style="width:100px">Channel</th>
+        <th data-ocol="subject" style="width:260px">Subject</th>
+        <th data-ocol="status" style="width:150px">Status</th>
+        <th data-ocol="due_date" style="width:100px">Due</th>
+        <th data-ocol="doc_path" style="width:260px">Doc Path</th>
+        <th data-ocol="note" style="width:340px">Notes</th>
+        <th></th>
+      </tr>
+      <tr class="filter-row">
+        <th><input type="text" data-filter-col="sent_date" placeholder="Date..."></th>
+        <th><input type="text" data-filter-col="contact" placeholder="Contact..."></th>
+        <th><input type="text" data-filter-col="channel" placeholder="Channel..."></th>
+        <th><input type="text" data-filter-col="subject" placeholder="Subject..."></th>
+        <th><input type="text" data-filter-col="status" placeholder="Status..."></th>
+        <th><input type="text" data-filter-col="due_date" placeholder="Due..."></th>
+        <th><input type="text" data-filter-col="doc_path" placeholder="Doc path..."></th>
+        <th><input type="text" data-filter-col="note" placeholder="Notes..."></th>
         <th></th>
       </tr>
     </thead>
     <tbody id="outreachTbody">
-      <tr><td colspan="8" class="loading">Loading...</td></tr>
+      <tr><td colspan="9" class="loading">Loading...</td></tr>
     </tbody>
   </table>
 </div>
@@ -396,20 +476,49 @@
   <button id="addChpBtn" style="margin-left:auto;padding:9px 16px;background:#e58520;color:#1c1c1c;border:none;border-radius:4px;font-weight:600;cursor:pointer;">+ Add unit</button>
 </div>
 <div class="table-wrap">
-  <table id="chpTable">
+  <table id="chpTable" class="resizable">
     <thead>
       <tr>
-        <th data-ccol="maker">Maker / Model</th>
-        <th data-ccol="country">Country</th>
-        <th data-ccol="kwe">kWe</th>
-        <th data-ccol="elec_efficiency">Elec Eff</th>
-        <th data-ccol="moisture_spec">Moisture spec</th>
-        <th data-ccol="japan_installs">Japan installs</th>
+        <th data-ccol="maker" style="width:140px">Maker</th>
+        <th data-ccol="model" style="width:140px">Model</th>
+        <th data-ccol="country" style="width:90px">Country</th>
+        <th data-ccol="jp_distributor" style="width:180px">JP Distributor</th>
+        <th data-ccol="kwe" style="width:90px">kWe</th>
+        <th data-ccol="elec_efficiency" style="width:90px">Elec Eff</th>
+        <th data-ccol="gen_type" style="width:180px">Gen Type</th>
+        <th data-ccol="fuel_type" style="width:180px">Fuel Type</th>
+        <th data-ccol="moisture_spec" style="width:150px">Moisture Spec</th>
+        <th data-ccol="chip_size_spec" style="width:150px">Chip Size Spec</th>
+        <th data-ccol="japan_installs" style="width:220px">Japan Installs</th>
+        <th data-ccol="contact" style="width:160px">Contact</th>
+        <th data-ccol="website" style="width:150px">Website</th>
+        <th data-ccol="domestic_maker" style="width:90px">Domestic</th>
+        <th data-ccol="source" style="width:160px">Source</th>
+        <th data-ccol="notes" style="width:380px">Notes</th>
+        <th></th>
+      </tr>
+      <tr class="filter-row">
+        <th><input type="text" data-filter-col="maker" placeholder="Maker..."></th>
+        <th><input type="text" data-filter-col="model" placeholder="Model..."></th>
+        <th><input type="text" data-filter-col="country" placeholder="Country..."></th>
+        <th><input type="text" data-filter-col="jp_distributor" placeholder="Distributor..."></th>
+        <th><input type="text" data-filter-col="kwe" placeholder="kWe..."></th>
+        <th><input type="text" data-filter-col="elec_efficiency" placeholder="Eff..."></th>
+        <th><input type="text" data-filter-col="gen_type" placeholder="Gen type..."></th>
+        <th><input type="text" data-filter-col="fuel_type" placeholder="Fuel..."></th>
+        <th><input type="text" data-filter-col="moisture_spec" placeholder="Moisture..."></th>
+        <th><input type="text" data-filter-col="chip_size_spec" placeholder="Chip size..."></th>
+        <th><input type="text" data-filter-col="japan_installs" placeholder="Installs..."></th>
+        <th><input type="text" data-filter-col="contact" placeholder="Contact..."></th>
+        <th><input type="text" data-filter-col="website" placeholder="Website..."></th>
+        <th><input type="text" data-filter-col="domestic_maker" placeholder="JP/foreign..."></th>
+        <th><input type="text" data-filter-col="source" placeholder="Source..."></th>
+        <th><input type="text" data-filter-col="notes" placeholder="Notes..."></th>
         <th></th>
       </tr>
     </thead>
     <tbody id="chpTbody">
-      <tr><td colspan="7" class="loading">Loading...</td></tr>
+      <tr><td colspan="17" class="loading">Loading...</td></tr>
     </tbody>
   </table>
 </div>
@@ -565,6 +674,72 @@ function escapeHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+// Turns URLs (and optionally emails) inside plain text into clickable links, HTML-escaping everything else.
+function linkify(str, opts) {
+  if (!str) return '';
+  opts = opts || {};
+  const escaped = escapeHtml(str);
+  let out = escaped.replace(/(https?:\/\/[^\s<]+)/g, url =>
+    `<a class="cell-link" href="${url}" target="_blank" rel="noopener">${url}</a>`);
+  if (opts.email) {
+    out = out.replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, email =>
+      `<a class="cell-link" href="mailto:${email}">${email}</a>`);
+  }
+  return out;
+}
+
+// Per-column filter-row wiring, shared by all tables.
+function wireColumnFilters(tableId, state, onChange) {
+  document.querySelectorAll('#' + tableId + ' .filter-row input').forEach(input => {
+    input.addEventListener('input', () => {
+      state[input.dataset.filterCol] = input.value.trim().toLowerCase();
+      onChange();
+    });
+    input.addEventListener('click', e => e.stopPropagation());
+    input.addEventListener('mousedown', e => e.stopPropagation());
+  });
+}
+function matchesColumnFilters(row, state) {
+  return Object.keys(state).every(col => {
+    const val = state[col];
+    if (!val) return true;
+    const cell = row[col];
+    return (cell === undefined || cell === null ? '' : String(cell)).toLowerCase().includes(val);
+  });
+}
+
+// Adds a drag handle to each <th> of the given table so columns can be resized horizontally.
+function makeTableResizable(tableId) {
+  const table = document.getElementById(tableId);
+  if (!table || table.dataset.resizableInit) return;
+  table.dataset.resizableInit = '1';
+  table.querySelectorAll('thead tr:first-child th').forEach(th => {
+    const resizer = document.createElement('div');
+    resizer.className = 'col-resizer';
+    th.appendChild(resizer);
+    resizer.addEventListener('mousedown', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      const startX = e.pageX;
+      const startWidth = th.offsetWidth;
+      resizer.classList.add('resizing');
+      document.body.style.cursor = 'col-resize';
+      function onMove(ev) {
+        th.style.width = Math.max(50, startWidth + (ev.pageX - startX)) + 'px';
+      }
+      function onUp() {
+        resizer.classList.remove('resizing');
+        document.body.style.cursor = '';
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+    resizer.addEventListener('click', e => e.stopPropagation());
+  });
+}
+
 function highlight(text, q) {
   if (!q) return escapeHtml(text);
   const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -582,10 +757,25 @@ let sortCol = 'date';
 let sortAsc  = false;
 const fullContent = {};
 
+const chatColFilters = {};
+
 function renderTable(rows) {
-  document.getElementById('shown').textContent = rows.length;
   const q    = currentSearch;
   const tbody = document.getElementById('tbody');
+
+  rows = rows.filter(r => {
+    if (chatColFilters.date && !formatDate(r.created_at).toLowerCase().includes(chatColFilters.date)) return false;
+    if (chatColFilters.agent && !(r.agent||'').toLowerCase().includes(chatColFilters.agent)) return false;
+    if (chatColFilters.role && !(r.role||'').toLowerCase().includes(chatColFilters.role)) return false;
+    if (chatColFilters.thread) {
+      const t = (r.thread_title || r.thread_slug || '').toLowerCase();
+      if (!t.includes(chatColFilters.thread)) return false;
+    }
+    if (chatColFilters.content && !(r.content_preview||'').toLowerCase().includes(chatColFilters.content)) return false;
+    return true;
+  });
+
+  document.getElementById('shown').textContent = rows.length;
 
   if (!rows.length) {
     tbody.innerHTML = '<tr><td colspan="5" class="loading">No results found.</td></tr>';
@@ -596,19 +786,24 @@ function renderTable(rows) {
     fullContent[i] = r.content_preview || '';
     const preview = (r.content_preview || '').substring(0, 200);
     const badge   = `<span class="agent-badge" style="background:${agentColor(r.agent)}22;color:${agentColor(r.agent)};border:1px solid ${agentColor(r.agent)}55">${escapeHtml(r.agent)}</span>`;
-    const thread  = r.thread_title ? escapeHtml(r.thread_title.substring(0,30)) : (r.thread_slug ? escapeHtml(r.thread_slug.substring(0,30)) : '—');
+    const thread  = r.thread_title ? escapeHtml(r.thread_title) : (r.thread_slug ? escapeHtml(r.thread_slug) : '—');
+    const contentHtml = q ? highlight(preview, q) : linkify(preview);
     return `<tr data-idx="${i}">
       <td class="date">${formatDate(r.created_at)}</td>
       <td class="agent">${badge}</td>
       <td class="role">${escapeHtml(r.role)}</td>
-      <td class="thread" title="${r.thread_title||''}">${thread}</td>
-      <td class="content">${highlight(preview, q)}${preview.length < (r.content_preview||'').length ? ' <span style="color:#555">…</span>' : ''}</td>
+      <td class="thread">${thread}</td>
+      <td class="content">${contentHtml}${preview.length < (r.content_preview||'').length ? ' <span style="color:#555">…</span>' : ''}</td>
     </tr>`;
   }).join('');
 
   tbody.querySelectorAll('tr').forEach(tr => {
-    tr.addEventListener('click', () => openModal(parseInt(tr.dataset.idx), rows));
+    tr.addEventListener('click', e => {
+      if (e.target.closest('a')) return;
+      openModal(parseInt(tr.dataset.idx), rows);
+    });
   });
+  makeTableResizable('chatTable');
 }
 
 async function openModal(idx, rows) {
@@ -667,6 +862,7 @@ document.querySelectorAll('thead th[data-col]').forEach(th => {
   });
 });
 
+wireColumnFilters('chatTable', chatColFilters, () => renderTable(allRows));
 fetchData();
 
 // ---- Tabs ----
@@ -692,6 +888,7 @@ let peopleSearch = '';
 let peopleCategory = 'all';
 let peopleSortCol = 'category';
 let peopleSortAsc = true;
+const peopleColFilters = {};
 
 async function fetchPeople() {
   const res = await fetch('people.php');
@@ -704,6 +901,7 @@ async function fetchPeople() {
   sel.innerHTML = '<option value="all">All categories</option>' +
     cats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
 
+  wireColumnFilters('peopleTable', peopleColFilters, renderPeople);
   renderPeople();
 }
 
@@ -711,7 +909,8 @@ function renderPeople() {
   const q = peopleSearch.toLowerCase();
   let rows = peopleRows.filter(p =>
     (peopleCategory === 'all' || p.category === peopleCategory) &&
-    (!q || [p.name,p.kanji,p.category,p.role,p.org,p.phone,p.email,p.last_note].join(' ').toLowerCase().includes(q))
+    (!q || [p.name,p.kanji,p.category,p.role,p.org,p.phone,p.email,p.last_note].join(' ').toLowerCase().includes(q)) &&
+    matchesColumnFilters(p, peopleColFilters)
   );
   rows.sort((a,b) => {
     const av = (a[peopleSortCol]||'').toString().toLowerCase();
@@ -723,19 +922,25 @@ function renderPeople() {
 
   const tbody = document.getElementById('peopleTbody');
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="loading">No results found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" class="loading">No results found.</td></tr>';
     return;
   }
   tbody.innerHTML = rows.map(p => `
     <tr>
-      <td>${escapeHtml(p.name)}${p.kanji ? `<br><span style="color:#888;font-size:0.8em">${escapeHtml(p.kanji)}</span>` : ''}</td>
-      <td><span class="pill">${escapeHtml(p.category)}</span></td>
-      <td>${escapeHtml(p.role||'')}${p.org ? `<br><span style="color:#b0b0b0;font-size:0.85em">${escapeHtml(p.org)}</span>` : ''}</td>
-      <td>${p.email ? `<a href="mailto:${p.email}" style="color:#e58520">${escapeHtml(p.email)}</a>` : (p.phone ? escapeHtml(p.phone) : '—')}${p.website ? `<br><a href="${p.website}" target="_blank" style="color:#e58520">${escapeHtml(p.website)}</a>` : ''}</td>
-      <td style="color:#b0b0b0;font-size:0.85em">${p.last_date||''}<br>${escapeHtml(p.last_note||'')}</td>
+      <td>${escapeHtml(p.name||'')}</td>
+      <td>${escapeHtml(p.kanji||'')}</td>
+      <td><span class="pill">${escapeHtml(p.category||'')}</span></td>
+      <td>${escapeHtml(p.role||'')}</td>
+      <td>${escapeHtml(p.org||'')}</td>
+      <td>${p.phone ? `<a class="cell-link" href="tel:${p.phone}">${escapeHtml(p.phone)}</a>` : ''}</td>
+      <td>${p.email ? `<a class="cell-link" href="mailto:${p.email}">${escapeHtml(p.email)}</a>` : ''}</td>
+      <td>${p.website ? `<a class="cell-link" href="${p.website}" target="_blank" rel="noopener">${escapeHtml(p.website)}</a>` : ''}</td>
+      <td style="white-space:nowrap;color:#b0b0b0;font-size:0.85em">${escapeHtml(p.last_date||'')}</td>
+      <td style="color:#b0b0b0;font-size:0.85em">${linkify(p.last_note||'')}</td>
       <td class="pactions"><button onclick="editPerson(${p.id})">Edit</button></td>
     </tr>
   `).join('');
+  makeTableResizable('peopleTable');
 }
 
 document.getElementById('peopleSearch').addEventListener('input', e => {
@@ -804,6 +1009,7 @@ let outreachSearch = '';
 let outreachStatus = 'all';
 let outreachSortCol = 'sent_date';
 let outreachSortAsc = false;
+const outreachColFilters = {};
 
 async function fetchOutreach() {
   const res = await fetch('outreach.php');
@@ -816,6 +1022,7 @@ async function fetchOutreach() {
   sel.innerHTML = '<option value="all">All statuses</option>' +
     statuses.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
 
+  wireColumnFilters('outreachTable', outreachColFilters, renderOutreach);
   renderOutreach();
 }
 
@@ -823,7 +1030,8 @@ function renderOutreach() {
   const q = outreachSearch.toLowerCase();
   let rows = outreachRows.filter(o =>
     (outreachStatus === 'all' || o.status === outreachStatus) &&
-    (!q || [o.contact,o.channel,o.subject,o.status,o.note,o.doc_path].join(' ').toLowerCase().includes(q))
+    (!q || [o.contact,o.channel,o.subject,o.status,o.note,o.doc_path].join(' ').toLowerCase().includes(q)) &&
+    matchesColumnFilters(o, outreachColFilters)
   );
   rows.sort((a,b) => {
     const av = (a[outreachSortCol]||'').toString().toLowerCase();
@@ -835,21 +1043,23 @@ function renderOutreach() {
 
   const tbody = document.getElementById('outreachTbody');
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="8" class="loading">No results found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="loading">No results found.</td></tr>';
     return;
   }
   tbody.innerHTML = rows.map(o => `
     <tr>
       <td style="white-space:nowrap">${escapeHtml(o.sent_date||'')}</td>
-      <td>${escapeHtml(o.contact||'')}</td>
+      <td>${linkify(o.contact||'', {email:true})}</td>
       <td>${escapeHtml(o.channel||'')}</td>
       <td>${escapeHtml(o.subject||'')}</td>
       <td><span class="pill">${escapeHtml(o.status||'')}</span></td>
       <td style="white-space:nowrap;${o.due_date && o.due_date < todayStr() ? 'color:#e07070' : ''}">${escapeHtml(o.due_date||'')}</td>
-      <td style="color:#b0b0b0;font-size:0.85em">${escapeHtml(o.note||'')}${o.doc_path ? `<br><span style="color:#888">${escapeHtml(o.doc_path)}</span>` : ''}</td>
+      <td style="color:#888;font-size:0.85em">${escapeHtml(o.doc_path||'')}</td>
+      <td style="color:#b0b0b0;font-size:0.85em">${linkify(o.note||'', {email:true})}</td>
       <td class="pactions"><button onclick="editOutreach(${o.id})">Edit</button></td>
     </tr>
   `).join('');
+  makeTableResizable('outreachTable');
 }
 
 document.getElementById('outreachSearch').addEventListener('input', e => {
@@ -917,12 +1127,14 @@ let chpSearch = '';
 let chpDomestic = 'all';
 let chpSortCol = 'kwe';
 let chpSortAsc = true;
+const chpColFilters = {};
 
 async function fetchChp() {
   const res = await fetch('chp_equipment.php');
   const data = await res.json();
   chpRows = data.rows || [];
   chpLoaded = true;
+  wireColumnFilters('chpTable', chpColFilters, renderChp);
   renderChp();
 }
 
@@ -930,7 +1142,8 @@ function renderChp() {
   const q = chpSearch.toLowerCase();
   let rows = chpRows.filter(c =>
     (chpDomestic === 'all' || (chpDomestic === 'yes') === (c.domestic_maker === true || c.domestic_maker === 't' || c.domestic_maker === true)) &&
-    (!q || [c.maker,c.model,c.country,c.fuel_type,c.notes,c.japan_installs].join(' ').toLowerCase().includes(q))
+    (!q || [c.maker,c.model,c.country,c.fuel_type,c.notes,c.japan_installs].join(' ').toLowerCase().includes(q)) &&
+    matchesColumnFilters(c, chpColFilters)
   );
   rows.sort((a,b) => {
     const av = (a[chpSortCol]||'').toString().toLowerCase();
@@ -944,20 +1157,31 @@ function renderChp() {
 
   const tbody = document.getElementById('chpTbody');
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="loading">No results found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="17" class="loading">No results found.</td></tr>';
     return;
   }
   tbody.innerHTML = rows.map(c => `
     <tr>
-      <td>${escapeHtml(c.maker||'')}${c.domestic_maker ? ' <span class="pill" style="background:#3a5f3a">JP</span>' : ''}<br><span style="color:#888;font-size:0.85em">${escapeHtml(c.model||'')}</span></td>
+      <td>${escapeHtml(c.maker||'')}${c.domestic_maker ? ' <span class="pill" style="background:#3a5f3a">JP</span>' : ''}</td>
+      <td>${escapeHtml(c.model||'')}</td>
       <td style="white-space:nowrap">${escapeHtml(c.country||'')}</td>
+      <td>${linkify(c.jp_distributor||'', {email:true})}</td>
       <td style="white-space:nowrap">${escapeHtml(c.kwe||'')}</td>
       <td style="white-space:nowrap">${escapeHtml(c.elec_efficiency||'')}</td>
+      <td>${escapeHtml(c.gen_type||'')}</td>
+      <td>${escapeHtml(c.fuel_type||'')}</td>
       <td>${escapeHtml(c.moisture_spec||'')}</td>
+      <td>${escapeHtml(c.chip_size_spec||'')}</td>
       <td style="color:#b0b0b0;font-size:0.85em">${escapeHtml(c.japan_installs||'')}</td>
+      <td>${linkify(c.contact||'', {email:true})}</td>
+      <td>${linkify(c.website||'')}</td>
+      <td style="white-space:nowrap">${c.domestic_maker ? '<span class="pill" style="background:#3a5f3a">JP</span>' : '<span style="color:#888">foreign</span>'}</td>
+      <td style="color:#888;font-size:0.85em">${escapeHtml(c.source||'')}</td>
+      <td style="color:#b0b0b0;font-size:0.85em">${linkify(c.notes||'')}</td>
       <td class="pactions"><button onclick="editChp(${c.id})">Edit</button></td>
     </tr>
   `).join('');
+  makeTableResizable('chpTable');
 }
 
 document.getElementById('chpSearch').addEventListener('input', e => {
